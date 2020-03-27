@@ -13,11 +13,11 @@ public class MapHandler {
         return map;
     }
 
-    public void initiateMap(int length, int width, IntegerPair agentIntegerPair) {
+    public void initiateMap(int length, int width, IntegerPair agentMovement) {
         this.map = new int[length][width];
-        this.agentLocation = agentIntegerPair;
-        int x = agentIntegerPair.getX();
-        int y = agentIntegerPair.getY();
+        this.agentLocation = agentMovement;
+        int x = agentMovement.getX();
+        int y = agentMovement.getY();
         //Agent location has value of 7
         map[x][y] = 7;
     }

@@ -1,8 +1,6 @@
-package massim.javaagents;
+package massim.javaagents.utils;
 
-import massim.javaagents.utils.Block;
-
-abstract class Cell {
+public class Cell {
     private CellType type;
 
     Cell(CellType type) {

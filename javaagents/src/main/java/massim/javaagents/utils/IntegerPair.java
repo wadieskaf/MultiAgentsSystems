@@ -1,4 +1,4 @@
-package massim.javaagents;
+package massim.javaagents.utils;
 
 public class IntegerPair {
     private int x;

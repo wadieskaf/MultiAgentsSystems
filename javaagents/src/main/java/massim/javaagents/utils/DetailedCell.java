@@ -1,10 +1,8 @@
-package massim.javaagents;
-
-import massim.javaagents.utils.Block;
+package massim.javaagents.utils;
 
 public class DetailedCell extends Cell {
     String details;
-    DetailedCell(CellType type) {
+    public DetailedCell(CellType type) {
         super(type);
     }
     public String getDetails() {

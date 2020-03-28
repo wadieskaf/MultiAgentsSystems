@@ -1,4 +1,4 @@
-package massim.javaagents;
+package massim.javaagents.utils;
 
 public enum CellType {
     Unknown,

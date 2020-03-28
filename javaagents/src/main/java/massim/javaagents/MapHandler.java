@@ -1,6 +1,11 @@
 package massim.javaagents;
 
 import massim.javaagents.utils.Block;
+import massim.javaagents.utils.Cell;
+import massim.javaagents.utils.CellType;
+import massim.javaagents.utils.DetailedCell;
+import massim.javaagents.utils.IntegerPair;
+import massim.javaagents.utils.OrdinaryCell;
 import massim.javaagents.utils.Thing;
 
 import java.util.ArrayList;
@@ -10,8 +15,8 @@ import java.util.List;
 public class MapHandler {
     private Cell[][] map;
     private IntegerPair agentLocation;
-    private ArrayList<IntegerPair> blocksLocationslist;
-    private ArrayList<IntegerPair> dispensersLocationslist;
+    private List<IntegerPair> blocksLocationslist;
+    private List<IntegerPair> dispensersLocationslist;
 
     public MapHandler() {
         blocksLocationslist = new ArrayList<IntegerPair>();
@@ -26,18 +31,19 @@ public class MapHandler {
         return map;
     }
 
-    public ArrayList<IntegerPair> getBlocksLocationslist() {
+    public List<IntegerPair> getBlocksLocationslist() {
         return blocksLocationslist;
     }
 
-    public ArrayList<IntegerPair> getDispensersLocationslist() {
+    public List<IntegerPair> getDispensersLocationslist() {
         return dispensersLocationslist;
     }
 
     public void initiateMap(int length, int width, IntegerPair agentMovement) {
         this.map = new Cell[length][width];
-        Cell emptyCell = new OrdinaryCell(CellType.Unknown);
-        Arrays.fill(map, emptyCell);
+        for(var row : map){
+            Arrays.fill(row, new OrdinaryCell(CellType.Unknown));
+        }
         this.agentLocation = agentMovement;
         int x = agentMovement.getX();
         int y = agentMovement.getY();
@@ -51,19 +57,19 @@ public class MapHandler {
     }
 
     private void addOrdinaryItemsToMap(List<Thing> items, String itemsType) {
-        OrdinaryCell itemCell;
+        CellType itemCellType;
         switch (itemsType) {
             case "Enemies":
-                itemCell = new OrdinaryCell(CellType.Enemy);
+                itemCellType = CellType.Enemy;
                 break;
             case "Teammates":
-                itemCell = new OrdinaryCell(CellType.Teammate);
+                itemCellType = CellType.Teammate;
                 break;
             case "Obstacles":
-                itemCell = new OrdinaryCell(CellType.Obstacle);
+                itemCellType = CellType.Obstacle;
                 break;
             case "Goals":
-                itemCell = new OrdinaryCell(CellType.Goal);
+                itemCellType = CellType.Goal;
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + itemsType);
@@ -73,19 +79,19 @@ public class MapHandler {
             int agent_y = this.agentLocation.getX();
             int x = item.getX() + agent_x;
             int y = item.getY() + agent_y;
-            this.map[x][y] = itemCell;
+            this.map[x][y] = new OrdinaryCell(itemCellType);
 
         }
     }
 
     private void addDetailedItemsToMap(List<Block> items, String itemsType) {
-        DetailedCell itemCell;
+        CellType itemCellType;
         switch (itemsType) {
             case "Blocks":
-                itemCell = new DetailedCell(CellType.Block);
+                itemCellType = CellType.Block;
                 break;
             case "Dispensers":
-                itemCell = new DetailedCell(CellType.Dispenser);
+                itemCellType = CellType.Dispenser;
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + itemsType);
@@ -95,8 +101,9 @@ public class MapHandler {
             int agent_y = this.agentLocation.getX();
             int x = item.getX() + agent_x;
             int y = item.getY() + agent_y;
+            DetailedCell itemCell = new DetailedCell(itemCellType);
             itemCell.setDetails(item.getType());
-            this.map[x + agent_x][y + agent_y] = itemCell;
+            this.map[x][y] = itemCell;
             switch (itemsType) {
                 case "Blocks":
                     blocksLocationslist.add(new IntegerPair(x, y));

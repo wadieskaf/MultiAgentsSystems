@@ -30,22 +30,7 @@ public class NewAgent extends Agent {
     @Override
     public Action step() {
         List<Percept> percepts = getPercepts();
-        /*percepts.stream()
-                .filter(p -> p.getName().equals("step"))
-                .findAny()
-                .ifPresent(p -> {
-                    Parameter param = p.getParameters().getFirst();
-                    if(param instanceof Numeral) say("Step " + ((Numeral) param).getValue());
-                });
-        List<Percept> obstacles = new ArrayList<Percept>();
-        obstacles = percepts.stream().filter(p -> p.getName().equals("obstacle")).collect(Collectors.toList());
-        for(Percept obstacle : obstacles){
-            int x = ((Numeral)obstacle.getParameters().get(0)).getValue().intValue();
-            int y = ((Numeral)obstacle.getParameters().get(1)).getValue().intValue();
-            if(x == 0 && y == -1){
-                return new Action("move", new Identifier("w"));
-            }
-        }*/
+
         PerceptionHandler ph = new PerceptionHandler(percepts);
         String team = ph.getTeam();
         List<Thing> enemies = ph.getEnemies();

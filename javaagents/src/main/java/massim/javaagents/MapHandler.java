@@ -7,11 +7,17 @@ import java.util.List;
 
 public class MapHandler {
     private int[][] map;
+
+    public IntegerPair getAgentLocation() {
+        return agentLocation;
+    }
+
     private IntegerPair agentLocation;
 
     public int[][] getMap() {
         return map;
     }
+
 
     public void initiateMap(int length, int width, IntegerPair agentMovement) {
         this.map = new int[length][width];
@@ -23,15 +29,18 @@ public class MapHandler {
     }
 
     private void moveAgent(IntegerPair agentMovement) {
-        int new_x = this.agentLocation.getX() - agentMovement.getX();
+        int new_x = this.agentLocation.getX() + agentMovement.getX();
         int new_y = this.agentLocation.getY() + agentMovement.getY();
         this.agentLocation = new IntegerPair(new_x, new_y);
     }
-
-    public void updateMap(PerceptionHandler handler, IntegerPair agentMovement) {
+    public void updateAgentLocation(IntegerPair agentMovement){
         this.map[agentLocation.getX()][agentLocation.getY()] = 0;
         this.moveAgent(agentMovement);
         this.map[agentLocation.getX()][agentLocation.getY()] = 7;
+    }
+
+    public void updateMap(PerceptionHandler handler, IntegerPair agentMovement) {
+        updateAgentLocation(agentMovement);
         List<Thing> enemies = handler.getEnemies();
         List<Thing> teammates = handler.getTeammates();
         List<Thing> obstacles = handler.getObstacles();

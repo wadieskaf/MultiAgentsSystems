@@ -1,12 +1,13 @@
 package massim.javaagents.utils;
 
 import java.util.List;
+import java.util.Map;
 
 public class Task {
     private String name;
     private Integer deadLine;
     private Integer reward;
-    private List<Block> requirements;
+    private Map<Block, Boolean> requirements;
 
     public String getName() {
         return this.name;
@@ -19,16 +20,26 @@ public class Task {
     public Integer getReward() {
         return this.reward;
     }
-
-    public List<Block> getRequirements() {
+    
+    public Map<Block, Boolean> getRequirements() {
         return this.requirements;
     }
 
     public Task(List<Block> requirements, String name, Integer deadLine, Integer reward){
-        this.requirements = requirements;
+        for(var req : requirements){
+            this.requirements.put(req, false);
+        }
         this.name = name;
         this.deadLine = deadLine;
         this.reward = reward;
+    }
+    
+    public void setRequirementStatus(Block block){
+        setRequirementStatus(block, true);
+    }
+    
+    public void setRequirementStatus(Block block, Boolean status){
+        this.requirements.replace(block, status);
     }
     
     

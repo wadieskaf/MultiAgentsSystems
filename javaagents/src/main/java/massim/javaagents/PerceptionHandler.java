@@ -7,6 +7,7 @@ import java.util.stream.Stream;
 
 import eis.iilang.*;
 import massim.javaagents.utils.Block;
+import massim.javaagents.utils.Task;
 import massim.javaagents.utils.Thing;
 
 public class PerceptionHandler {
@@ -49,6 +50,11 @@ public class PerceptionHandler {
 		List<Percept> dispensers = filterByType("dispenser")
 				.collect(Collectors.toList());
 		return perceptToBlock(dispensers);
+	}
+	
+	public List<Task> getTasks(){
+		List<Percept> taskPercepts = filterByName("task");
+		return perceptToTask(taskPercepts);
 	}
 
 	private List<Thing> getThingsByName(String name) {
@@ -100,6 +106,37 @@ public class PerceptionHandler {
 			String type = getStringParameter(per, 3);
 			Block t = new Block(x, y, type);
 			res.add(t);
+		}
+		return res;
+	}
+	
+	private List<Task> perceptToTask(List<Percept> precepts){
+		List<Task> res = new LinkedList<>();
+		for(var per : percepts){
+			if (per.getParameters().size() < 4 || !per.getName().equals("task")) {
+				continue;
+			}
+			String name = getStringParameter(per, 0);
+			int deadLine = getIntParameter(per, 1);
+			int reward = getIntParameter(per, 2);
+			ParameterList requirementPercepts = ((ParameterList)per.getClonedParameters().get(3));
+			List<Block> requirements = requirementsToBlocks(requirementPercepts);
+			Task task = new Task(requirements, name, deadLine, reward);
+			res.add(task);
+		}
+		return res;
+	}
+	
+	private List<Block> requirementsToBlocks(ParameterList requriements){
+		List<Block> res = new LinkedList<>();
+		for(Parameter req : requriements){
+			if(!(req instanceof Function)) continue;
+			//This is fucking ridiculous
+			int x = ((Numeral)((Function)req).getParameters().get(0)).getValue().intValue();
+			int y = ((Numeral)((Function)req).getParameters().get(1)).getValue().intValue();
+			String type = ((Identifier)((Function)req).getParameters().get(2)).getValue();
+			Block block = new Block(x, y, type);
+			res.add(block);
 		}
 		return res;
 	}

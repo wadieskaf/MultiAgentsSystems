@@ -4,10 +4,9 @@ import eis.iilang.*;
 import massim.javaagents.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.Random;
-import java.util.LinkedList;
-import java.util.Queue;
+
+import massim.javaagents.utils.*;
 
 /**
  * A very basic agent.
@@ -15,7 +14,7 @@ import java.util.Queue;
 public class BasicAgent extends Agent {
 
     private MapHandler mapHandler;
-    private int agent_x, agent_y;
+    private int agent_x, agent_y;//unused
     private IntegerPair agentMovement;
     private boolean hasBlockAttached;
     private boolean hasDoneTask;
@@ -27,13 +26,11 @@ public class BasicAgent extends Agent {
      */
     public BasicAgent(String name, MailService mailbox) {
         super(name, mailbox);
-        this.agent_x = 24;
-        this.agent_y = 24;
-        this.length = 50;
-        this.width = 50;
+        this.agent_x = 49;//unused
+        this.agent_y = 49;//unused
+        this.length = 100;
+        this.width = 100;
         this.agentMovement = new IntegerPair(0,0);
-        this.hasBlockAttached = false;
-        this.hasDoneTask = false;
         this.mapHandler = new MapHandler();
         this.mapHandler.initiateMap(this.length,this.width, new IntegerPair(this.agent_x,this.agent_y));
     }
@@ -53,14 +50,58 @@ public class BasicAgent extends Agent {
 
         //PHASE 2 (Internal State) - Agent updates its internal state
         this.mapHandler.updateMap(perceptionHandler, this.agentMovement);//needs to check if lastAction was successful before updating...
-        System.out.println("Agent Location: (" + this.mapHandler.getAgentLocation().getX() + "," + this.mapHandler.getAgentLocation().getY() + ")");
 
         //PHASE 3 (Deliberate) - Agent tries to figure out what is the best action to perform given his current state and his previous action
-        Action action = workThoseNeurons2(this.mapHandler, perceptionHandler);
+        Action action = workThoseNeurons3(this.mapHandler, perceptionHandler);
 
         //PHASE 4 (ACT) - Execute chosen action to achieve goal
         return action;
     }
+
+
+    public Action workThoseNeurons3(MapHandler mh, PerceptionHandler ph){
+
+        /*Percept lastActionInfo = ph.getLastActionInfo();
+        if(lastActionInfo.lastActionResult() == false){
+            return new Action(lastActionInfo.getLastAction(), new Identifier(lastActionInfo.lastActionParams()));
+        }*/
+
+        List<IntegerPair> dispensers = mh.getDispensersLocationslist();
+        if(dispensers.size() > 0 ){
+            List<IntegerPair> path = getShortestPathByType(CellType.Dispenser, "");
+            if(path.size()>1){
+                IntegerPair next_location = path.get(1);
+                return moveTo(next_location);
+            }
+        }
+
+        //if none of those conditions apply, just explore the place - explore means going for cells marked as unknowns
+        List<IntegerPair> path = explore();
+        if(path.size()>1){
+            return moveTo(path.get(1));
+        }
+        return new Action("skip");
+    }
+
+    public List<IntegerPair> getShortestPathByType(CellType ct, String detail) {
+        BFSsearch bfs = new BFSsearch(this.mapHandler, this.length, this.width);
+        List<IntegerPair> path = bfs.bfsByType(ct, detail);
+        return path;
+    }
+
+    public List<IntegerPair> getShortestPathByLocation(IntegerPair goal) {
+        BFSsearch bfs = new BFSsearch(this.mapHandler, this.length, this.width);
+        List<IntegerPair> path = bfs.bfsByLocation(goal);
+        return path;
+    }
+
+    public List<IntegerPair> explore(){
+        BFSsearch bfs = new BFSsearch(this.mapHandler, this.length, this.width);
+        List<IntegerPair> path = bfs.bfsByType(CellType.Unknown,"");
+        return path;
+    }
+
+    //##################################################################################################################################
 
 
 
@@ -73,58 +114,28 @@ public class BasicAgent extends Agent {
         return false;
     }
 
-    public Action moveTo(IntegerPair next){
-        //next = new IntegerPair(agent_x + next.getX(), agent_y = next.getY())
-        /*IntegerPair diff = new IntegerPair(agent_x,agent_y).diff(next);
-        if(diff.getX()<0){
-            //agent_x -= 1;
+    public Action moveTo(IntegerPair nextLocation){
+        int x_movement = nextLocation.getX() - this.mapHandler.getAgentLocation().getX();
+        int y_movement = nextLocation.getY() - this.mapHandler.getAgentLocation().getY();
+
+        this.agentMovement = new IntegerPair(x_movement, y_movement);
+        if(x_movement==-1 && y_movement==0){
             return new Action("move", new Identifier("w"));
         }
-        if(diff.getX()>0){
-            //agent_x += 1;
+        else if(x_movement==1 && y_movement==0){
             return new Action("move", new Identifier("e"));
         }
-        if(diff.getY()<0){
-            //agent_y -= 1;
+        else if(x_movement==0 && y_movement==-1){
             return new Action("move", new Identifier("n"));
         }
-        if(diff.getY()>0){
-            //agent_y += 1;
+        else if(x_movement==0 && y_movement==1){
             return new Action("move", new Identifier("s"));
-        }*/
+        }
 
         return new Action("skip");
     }
 
-    public Action moveRandom(){
-        Random rand = new Random();
-        int randn = rand.nextInt(4);
-        if(randn==1){
-            //!!!check if there is something in the way before moving!!!
-            this.agentMovement = new IntegerPair(0,-1);
-            return new Action("move", new Identifier("n"));
-        }
-        if(randn==2){
-            //!!!check if there is something in the way before moving!!!
-            this.agentMovement = new IntegerPair(0,1);
-            return new Action("move", new Identifier("s"));
-        }
-        if(randn==3){
-            //!!!check if there is something in the way before moving!!!
-            this.agentMovement = new IntegerPair(-1,0);
-            return new Action("move", new Identifier("w"));
-        }
-        //!!!check if there is something in the way before moving!!!
-        this.agentMovement = new IntegerPair(1,0);
-        return new Action("move", new Identifier("e"));
-    }
 
-    /*##### USING BFS #####*/
-    public List<IntegerPair> getShortestPath(CellType ct) {
-        BFSsearch bfs = new BFSsearch(this.mapHandler, this.length, this.width, ct);
-        List<IntegerPair> path = bfs.solve();
-        return path;
-    }
 
     public boolean blockOnMySide(){
         return false;
@@ -144,7 +155,7 @@ public class BasicAgent extends Agent {
     //aka use your brain (think) - try to choose best action
     //##### MISSING - handle task deadline and action failed(shouldn't this be handled on the MapHandler???)
     public Action workThoseNeurons2(MapHandler mh, PerceptionHandler ph){
-
+        /*
         //if you are in a goal cell and your done with your task... -> Submit!!!
         if(isGoal(mh)){
             //for now hasDoneTask is only a boolean function.... need to check how to get that info
@@ -226,6 +237,9 @@ public class BasicAgent extends Agent {
 
         //No task -> ... just move random.. maybe we can consider skip action(doing nothing)
         return moveRandom();
+
+         */
+        return null;
     }
 
 }

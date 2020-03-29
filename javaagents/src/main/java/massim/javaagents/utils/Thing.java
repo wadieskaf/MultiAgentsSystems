@@ -15,4 +15,16 @@ public class Thing{
     public int getY(){
         return y;
     }
+    
+    @Override
+    public boolean equals(Object o){
+        if(o == this) return true;
+        
+        if(!(o instanceof Thing)){
+            return false;
+        }
+        
+        Thing t = (Thing)o;
+        return x == t.x && y == t.y;
+    }
 }

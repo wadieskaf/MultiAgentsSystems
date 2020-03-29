@@ -4,6 +4,8 @@ import eis.iilang.*;
 import massim.javaagents.MailService;
 import massim.javaagents.PerceptionHandler;
 import massim.javaagents.utils.Block;
+import massim.javaagents.utils.IntegerPair;
+import massim.javaagents.utils.Task;
 import massim.javaagents.utils.Thing;
 
 import java.util.List;
@@ -39,6 +41,9 @@ public class NewAgent extends Agent {
         List<Thing> goals = ph.getGoals();
         List<Block> blocks = ph.getBlocks();
         List<Block> dispensers = ph.getDispensers();
+        List<Thing> empties = ph.getEmpty();
+        List<Task> tasks = ph.getTasks();
+        IntegerPair mv = ph.getAgentMovement();
         return new Action("move", new Identifier("n"));
     }
 

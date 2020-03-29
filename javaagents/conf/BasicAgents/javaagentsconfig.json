@@ -1,5 +1,5 @@
 {
   "agents" : {
-    "agentA1" : {"entity" : "connectionA1", "team" : "A", "class" : "NewAgent"}
+    "agentA1" : {"entity" : "connectionA1", "team" : "A", "class" : "BasicAgent"},
   }
 }

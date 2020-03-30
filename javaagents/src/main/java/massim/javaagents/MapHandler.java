@@ -8,15 +8,15 @@ import massim.javaagents.utils.IntegerPair;
 import massim.javaagents.utils.OrdinaryCell;
 import massim.javaagents.utils.Thing;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class MapHandler {
     private Cell[][] map;
     private IntegerPair agentLocation;
     private List<IntegerPair> blocksLocationslist;
     private List<IntegerPair> dispensersLocationslist;
+    Map<IntegerPair, String> blocksTypeMap = new HashMap<>();
+    Map<IntegerPair, String> dipensersTypeMap = new HashMap<>();
 
     public MapHandler() {
         blocksLocationslist = new ArrayList<IntegerPair>();
@@ -37,6 +37,14 @@ public class MapHandler {
 
     public List<IntegerPair> getDispensersLocationslist() {
         return dispensersLocationslist;
+    }
+
+    public Map<IntegerPair, String> getBlocksTypeMap() {
+        return blocksTypeMap;
+    }
+
+    public Map<IntegerPair, String> getDipensersTypeMap() {
+        return dipensersTypeMap;
     }
 
     public void initiateMap(int length, int width, IntegerPair agentMovement) {
@@ -108,8 +116,10 @@ public class MapHandler {
             switch (itemsType) {
                 case "Blocks":
                     blocksLocationslist.add(new IntegerPair(x, y));
+                    blocksTypeMap.put(new IntegerPair(x,y), item.getType());
                 case "Dispensers":
                     dispensersLocationslist.add(new IntegerPair(x, y));
+                    dipensersTypeMap.put(new IntegerPair(x,y), item.getType());
             }
         }
     }

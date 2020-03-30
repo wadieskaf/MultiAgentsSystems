@@ -52,7 +52,7 @@ public class BasicAgent extends Agent {
         this.perceptionHandler = new PerceptionHandler(percepts);
 
         //PHASE 2 (Internal State) - Agent updates its internal state
-        this.mapHandler.updateMap(perceptionHandler, this.agentMovement);//needs to check if lastAction was successful before updating...
+        this.mapHandler.updateMap(perceptionHandler);//needs to check if lastAction was successful before updating...
 
         //PHASE 3 (Deliberate) - Agent tries to figure out what is the best action to perform given his current state and his previous action
         Action action = workThoseNeurons3();

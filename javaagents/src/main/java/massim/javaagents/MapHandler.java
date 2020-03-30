@@ -120,7 +120,8 @@ public class MapHandler {
         this.map[agentLocation.getX()][agentLocation.getY()] = new OrdinaryCell(CellType.Agent);
     }
 
-    public void updateMap(PerceptionHandler handler, IntegerPair agentMovement) {
+    public void updateMap(PerceptionHandler handler) {
+        IntegerPair agentMovement = handler.getAgentMovement();
         updateAgentLocation(agentMovement);
         List<Thing> enemies = handler.getEnemies();
         List<Thing> teammates = handler.getTeammates();

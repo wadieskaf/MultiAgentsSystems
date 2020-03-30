@@ -7,6 +7,8 @@ import java.util.stream.Stream;
 
 import eis.iilang.*;
 import massim.javaagents.utils.Block;
+import massim.javaagents.utils.IntegerPair;
+import massim.javaagents.utils.Task;
 import massim.javaagents.utils.Thing;
 
 public class PerceptionHandler {
@@ -49,6 +51,42 @@ public class PerceptionHandler {
 		List<Percept> dispensers = filterByType("dispenser")
 				.collect(Collectors.toList());
 		return perceptToBlock(dispensers);
+	}
+	
+	public List<Task> getTasks(){
+		List<Percept> taskPercepts = filterByName("task");
+		return perceptToTask(taskPercepts);
+	}
+	
+	public List<Thing> getEmpty(){
+		List<Thing> empties = new LinkedList<>();
+		for(int i = -5; i <= 5; ++i){
+			int absI = Math.abs(i);
+			for(int j = absI-5; j <= 5-absI; ++j){
+				Thing t = new Thing(i, j);
+				empties.add(t);
+			}
+		}
+		List<Thing> things = new LinkedList<>();
+		things.addAll(getBlocks());
+		things.addAll(getDispensers());
+		things.addAll(getObstacles());
+		things.addAll(getGoals());
+		things.addAll(getEnemies());
+		things.addAll(getTeammates());
+		for(Thing thing : things){
+			empties.removeIf(p -> p.equals(thing));
+		}
+		return empties;
+	}
+	
+	public IntegerPair getAgentMovement(){
+		String actionResult = getStringParameter(filterByName("lastActionResult").get(0), 0);
+		String action = getStringParameter(filterByName("lastAction").get(0), 0);
+		if(!actionResult.equals("success") || !action.equals("move")) return new IntegerPair(0, 0);
+		//wtf?!?!(but it works)
+		String direction = ((Identifier)((ParameterList)filterByName("lastActionParams").get(0).getParameters().get(0)).get(0)).getValue();
+		return dirToPos(direction);
 	}
 
 	private List<Thing> getThingsByName(String name) {
@@ -103,6 +141,37 @@ public class PerceptionHandler {
 		}
 		return res;
 	}
+	
+	private List<Task> perceptToTask(List<Percept> precepts){
+		List<Task> res = new LinkedList<>();
+		for(var per : percepts){
+			if (per.getParameters().size() < 4 || !per.getName().equals("task")) {
+				continue;
+			}
+			String name = getStringParameter(per, 0);
+			int deadLine = getIntParameter(per, 1);
+			int reward = getIntParameter(per, 2);
+			ParameterList requirementPercepts = ((ParameterList)per.getClonedParameters().get(3));
+			List<Block> requirements = requirementsToBlocks(requirementPercepts);
+			Task task = new Task(requirements, name, deadLine, reward);
+			res.add(task);
+		}
+		return res;
+	}
+	
+	private List<Block> requirementsToBlocks(ParameterList requriements){
+		List<Block> res = new LinkedList<>();
+		for(Parameter req : requriements){
+			if(!(req instanceof Function)) continue;
+			//This is fucking ridiculous
+			int x = ((Numeral)((Function)req).getParameters().get(0)).getValue().intValue();
+			int y = ((Numeral)((Function)req).getParameters().get(1)).getValue().intValue();
+			String type = ((Identifier)((Function)req).getParameters().get(2)).getValue();
+			Block block = new Block(x, y, type);
+			res.add(block);
+		}
+		return res;
+	}
 
 	// get p percept's ith parameter if string
 	private String getStringParameter(Percept p, int index) {
@@ -118,5 +187,13 @@ public class PerceptionHandler {
 			return ((Numeral) p.getParameters().get(index)).getValue().intValue();
 		} else
 			return 0;
+	}
+	
+	private IntegerPair dirToPos(String direction){
+		if(direction.equals("n")) return new IntegerPair(0, -1);
+		if(direction.equals("s")) return new IntegerPair(0, 1);
+		if(direction.equals("e")) return new IntegerPair(1, 0);
+		if(direction.equals("w")) return new IntegerPair(-1, 0);
+		return new IntegerPair(0, 0);
 	}
 }

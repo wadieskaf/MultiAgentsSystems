@@ -4,7 +4,6 @@ import eis.iilang.*;
 import massim.javaagents.*;
 
 import java.util.List;
-import java.util.Random;
 
 import massim.javaagents.utils.*;
 
@@ -70,6 +69,10 @@ public class BasicAgent extends Agent {
         if(dispensers.size() > 0 ){
             List<IntegerPair> path = getShortestPathByType(CellType.Dispenser, "");
             if(path.size()>1){
+                System.out.print("Path: " );
+                for (var p:path){
+                    System.out.print("(" + p.getX() + "," + p.getY() + ")" + " , ");
+                }
                 IntegerPair next_location = path.get(1);
                 return moveTo(next_location);
             }

@@ -76,7 +76,7 @@ public class BFSsearch {
 
             IntegerPair currentCell = queue.remove();
             //System.out.println("Current: (" + currentCell.getX() + "," + currentCell.getY() + ")");
-            if(mh.getMap()[currentCell.getX()][currentCell.getY()] == new OrdinaryCell(cellType)){
+            if(mh.getMap()[currentCell.getX()][currentCell.getY()].getType().equals(cellType) ){
                 if(detail==""){
                     path.add(currentCell);
                     reached_goal = true;
@@ -85,6 +85,7 @@ public class BFSsearch {
                 else{
                     //check if cell detail is the same as the preferred detail
                     //this applies to blocks and dispensers in which detail is the type -- !!!!!! WAITING METHOD !!!!!!!
+
                 }
             }
             //if not goal cell -> explore neighbours

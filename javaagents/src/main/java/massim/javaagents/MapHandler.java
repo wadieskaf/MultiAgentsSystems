@@ -71,6 +71,9 @@ public class MapHandler {
             case "Goals":
                 itemCellType = CellType.Goal;
                 break;
+            case "Empty":
+                itemCellType = CellType.Empty;
+                break;
             default:
                 throw new IllegalStateException("Unexpected value: " + itemsType);
         }
@@ -101,9 +104,7 @@ public class MapHandler {
             int agent_y = this.agentLocation.getX();
             int x = item.getX() + agent_x;
             int y = item.getY() + agent_y;
-            DetailedCell itemCell = new DetailedCell(itemCellType);
-            itemCell.setDetails(item.getType());
-            this.map[x][y] = itemCell;
+            this.map[x][y] = new DetailedCell(itemCellType, item.getType());
             switch (itemsType) {
                 case "Blocks":
                     blocksLocationslist.add(new IntegerPair(x, y));
@@ -125,6 +126,7 @@ public class MapHandler {
         List<Thing> teammates = handler.getTeammates();
         List<Thing> obstacles = handler.getObstacles();
         List<Thing> goals = handler.getGoals();
+        List<Thing> empty = handler.getEmpty();
         List<Block> blocks = handler.getBlocks();
         List<Block> dispensers = handler.getDispensers();
 
@@ -132,6 +134,7 @@ public class MapHandler {
         addOrdinaryItemsToMap(teammates, "Teammates");
         addOrdinaryItemsToMap(obstacles, "Obstacles");
         addOrdinaryItemsToMap(goals, "Goals");
+        addOrdinaryItemsToMap(empty, "Empty");
         addDetailedItemsToMap(blocks, "Blocks");
         addDetailedItemsToMap(dispensers, "Dispensers");
 

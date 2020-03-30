@@ -115,7 +115,7 @@ public class MapHandler {
     }
 
     public void updateAgentLocation(IntegerPair agentMovement) {
-        this.map[agentLocation.getX()][agentLocation.getY()] = new OrdinaryCell(CellType.Unknown);
+        this.map[agentLocation.getX()][agentLocation.getY()] = new OrdinaryCell(CellType.Empty);
         this.moveAgent(agentMovement);
         this.map[agentLocation.getX()][agentLocation.getY()] = new OrdinaryCell(CellType.Agent);
     }

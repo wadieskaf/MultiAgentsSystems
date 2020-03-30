@@ -5,6 +5,10 @@ public class DetailedCell extends Cell {
     public DetailedCell(CellType type) {
         super(type);
     }
+    public DetailedCell(CellType type, String details){
+        super(type);
+        this.details = details;
+    }
     public String getDetails() {
         return details;
     }

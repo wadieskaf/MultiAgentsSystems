@@ -1,12 +1,14 @@
 package massim.javaagents.utils;
 
 public enum CellType {
-    Unknown,
-    Enemy,
-    Teammate,
-    Obstacle,
-    Goal,
+    Agent,
     Block,
     Dispenser,
-    Agent
+    Empty,
+    Enemy,
+    Goal,
+    Obstacle,
+    Teammate,
+    Unknown
+
 }

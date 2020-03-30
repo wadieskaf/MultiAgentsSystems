@@ -1,5 +1,6 @@
 package massim.javaagents.utils;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +27,7 @@ public class Task {
     }
 
     public Task(List<Block> requirements, String name, Integer deadLine, Integer reward){
+        this.requirements = new HashMap<>();
         for(var req : requirements){
             this.requirements.put(req, false);
         }

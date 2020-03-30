@@ -19,6 +19,7 @@ public class BFSsearch {
     List <IntegerPair> path;
     int length;
     int width;
+    private CellType cellType;
 
     public BFSsearch(MapHandler mh, int length, int width){
         this.mh = mh;
@@ -68,6 +69,7 @@ public class BFSsearch {
     }
 
     public List<IntegerPair> bfsByType(CellType cellType, String detail){
+        this.cellType = cellType;
         //System.out.println("Starting Position: (" + agentCurrentPos.getX() + "," + agentCurrentPos.getY() + ")");
         queue.add(agentCurrentPos);
         this.map[agentCurrentPos.getX()][agentCurrentPos.getY()] = 1; //mark as visited
@@ -111,7 +113,7 @@ public class BFSsearch {
         IntegerPair newCellPos = null;
 
         //possible directions agent can look
-        int [] directionInX = {-1,1,0,0};
+        int [] directionInX = {1,-1,0,0};
         int [] directionInY = {0,0,1,-1};
 
         //for each direction -> check
@@ -130,8 +132,13 @@ public class BFSsearch {
                 continue;
             }
             //check if the newPosition is valid to move
-            if(mh.getMap()[newCellPos.getX()][newCellPos.getY()] == new OrdinaryCell(CellType.Obstacle) || mh.getMap()[newCellPos.getX()][newCellPos.getY()] == new OrdinaryCell(CellType.Unknown)){
+            if(mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Obstacle)){
                 continue; //then check other direction
+            }
+
+            //this is needed because when BFS is called by explore method, we want him to go for the unknown
+            if(!this.cellType.equals(CellType.Unknown) && mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Unknown)){
+                continue;
             }
 
             this.queue.add(newCellPos);

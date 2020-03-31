@@ -86,8 +86,11 @@ public class BFSsearch {
                 }
                 else{
                     //check if cell detail is the same as the preferred detail
-                    //this applies to blocks and dispensers in which detail is the type -- !!!!!! WAITING METHOD !!!!!!!
-
+                    if(((DetailedCell)mh.getMap()[currentCell.getX()][currentCell.getY()]).getDetails().equals(detail)){
+                        path.add(currentCell);
+                        reached_goal = true;
+                        break;
+                    }
                 }
             }
             //if not goal cell -> explore neighbours
@@ -113,7 +116,7 @@ public class BFSsearch {
         IntegerPair newCellPos = null;
 
         //possible directions agent can look
-        int [] directionInX = {1,-1,0,0};
+        int [] directionInX = {-1,1,0,0};
         int [] directionInY = {0,0,1,-1};
 
         //for each direction -> check
@@ -122,7 +125,8 @@ public class BFSsearch {
             int newPosX = current.getX() + directionInX[i];
             int newPosY = current.getY() + directionInY[i];
             newCellPos =  new IntegerPair(newPosX, newPosY);
-            //System.out.println("New CellPos: (" + newCellPos.getX() + "," + newCellPos.getY() + ")");
+            System.out.println("New CellPos: (" + newCellPos.getX() + "," + newCellPos.getY() + ")");
+            System.out.println("Check type: " + mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().toString());
 
             if(newCellPos.getX() < 0 || newCellPos.getX() > this.length - 1 || newCellPos.getY() < 0 || newCellPos.getY() > this.width -1){
                 continue;
@@ -132,7 +136,7 @@ public class BFSsearch {
                 continue;
             }
             //check if the newPosition is valid to move
-            if(mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Obstacle)){
+            if(mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Obstacle) || mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Teammate) || mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Enemy)){
                 continue; //then check other direction
             }
 
@@ -140,6 +144,12 @@ public class BFSsearch {
             if(!this.cellType.equals(CellType.Unknown) && mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Unknown)){
                 continue;
             }
+
+            /*if(this.cellType.equals(CellType.Unknown) && mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Empty)){
+                continue;
+            }*/
+
+            System.out.println("OK CAN VISIT");
 
             this.queue.add(newCellPos);
             this.map[newCellPos.getX()][newCellPos.getY()] = 1; //mark as visited (altough it was only enqueued we don't want to enqueue it again)

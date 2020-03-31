@@ -29,4 +29,14 @@ public class IntegerPair {
         return x == t.x && y == t.y;
     }
 
+    public IntegerPair add(IntegerPair pair){
+        return new IntegerPair(this.x + pair.getX(), this.y + pair.getY());
+    }
+    public IntegerPair subtract(IntegerPair pair) {
+        return new IntegerPair(this.x - pair.getX(), this.y - pair.getY());
+    }
+    public IntegerPair inverse(){
+        return new IntegerPair(-1 * this.x, -1 * this.y);
+    }
+
 }

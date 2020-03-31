@@ -50,6 +50,12 @@ public class MapHandler {
         return dispensersLocationslist;
     }
 
+    public Cell getCell(IntegerPair location){
+//        System.out.println("Location x= " + location.getX());
+//        System.out.println("Location y= " + location.getY());
+        return this.map[location.getX()][location.getY()];
+    }
+
     public Map<IntegerPair, String> getBlocksTypeMap() {
         return blocksTypeMap;
     }
@@ -69,7 +75,7 @@ public class MapHandler {
         map[x][y] = new OrdinaryCell(CellType.Agent);
     }
 
-    private void moveAgent(IntegerPair agentMovement) {
+    public void moveAgent(IntegerPair agentMovement) {
         int new_x = this.agentLocation.getX() + agentMovement.getX();
         int new_y = this.agentLocation.getY() + agentMovement.getY();
         this.agentLocation = new IntegerPair(new_x, new_y);

@@ -20,8 +20,14 @@ public class BFSsearch {
     int length;
     int width;
     private CellType cellType;
-
+    boolean failed;
+    
     public BFSsearch(MapHandler mh, int length, int width){
+        this(mh, length, width, false);
+    }
+
+    public BFSsearch(MapHandler mh, int length, int width, boolean failed){
+        this.failed = failed;
         this.mh = mh;
         this.agentCurrentPos = this.mh.getAgentLocation();
         this.move_count = 0;
@@ -118,6 +124,9 @@ public class BFSsearch {
         //possible directions agent can look
         int [] directionInX = {-1,1,0,0};
         int [] directionInY = {0,0,1,-1};
+        
+        int [] unknownInX = {-6,6,0,0};
+        int [] unknownInY = {0,0,6,-6};
 
         //for each direction -> check
         for(int i=0; i<4; i++){
@@ -125,6 +134,9 @@ public class BFSsearch {
             int newPosX = current.getX() + directionInX[i];
             int newPosY = current.getY() + directionInY[i];
             newCellPos =  new IntegerPair(newPosX, newPosY);
+            int unknownX = current.getX() + unknownInX[i];
+            int unknownY = current.getY() + unknownInY[i];
+            IntegerPair unknownPos =  new IntegerPair(unknownX, unknownY);
             System.out.println("New CellPos: (" + newCellPos.getX() + "," + newCellPos.getY() + ")");
             System.out.println("Check type: " + mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().toString());
 
@@ -136,14 +148,15 @@ public class BFSsearch {
                 continue;
             }
             //check if the newPosition is valid to move
-            if(mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Obstacle) || mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Teammate) || mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Enemy)){
-                continue; //then check other direction
+            //WTF, Bruno?!?!?!
+            if(!this.mh.getMap()[newPosX][newPosY].getType().equals(CellType.Empty)){
+                continue;
             }
 
             //this is needed because when BFS is called by explore method, we want him to go for the unknown
-            if(!this.cellType.equals(CellType.Unknown) && mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Unknown)){
+            /*if(!this.cellType.equals(CellType.Unknown) && mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Unknown)){
                 continue;
-            }
+            }*/
 
             /*if(this.cellType.equals(CellType.Unknown) && mh.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Empty)){
                 continue;

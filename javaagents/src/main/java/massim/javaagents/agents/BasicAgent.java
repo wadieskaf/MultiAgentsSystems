@@ -59,16 +59,17 @@ public class BasicAgent extends Agent {
         this.mapHandler.updateMap(perceptionHandler);//needs to check if lastAction was successful before updating...
 
         //PHASE 3 (Deliberate) - Agent tries to figure out what is the best action to perform given his current state and his previous action
-        Action action = workThoseNeurons();
+        return workThoseNeurons();
 
-        //PHASE 4 (ACT) - Execute chosen action to achieve goal
-        return action;
+        /*//PHASE 4 (ACT) - Execute chosen action to achieve goal
+        return action;*/
     }
 
 
     public Action workThoseNeurons(){
 
         List<Task> tasks = this.perceptionHandler.getTasks();
+        action = null;
 
         //if there is a task available and the agent was not doing any other task -> let's do this task then
         if(tasks.size() > 0 && activeTask == null){
@@ -113,7 +114,7 @@ public class BasicAgent extends Agent {
     //##################################### FUNCTIONS #####################################################
 
     public Action lookForDispenser(String detail){
-        List<IntegerPair> dispensers = this.mapHandler.getDispensersLocationslist(); //!!!!MISSING DISPENSER TYPE!!!
+        Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail); //!!!!MISSING DISPENSER TYPE!!!
         if(dispensers.size() > 0 ){
             List<IntegerPair> path = getShortestPathByType(CellType.Dispenser, detail);
             if(path.size()>2){
@@ -132,7 +133,7 @@ public class BasicAgent extends Agent {
                 }
             }
         }
-        return null;
+        return explore();
     }
 
     /*public Action lookForBlock(String detail){
@@ -166,7 +167,7 @@ public class BasicAgent extends Agent {
             return new Action("submit", new Identifier(this.activeTask.getName()));
         }
 
-        return null;
+        return explore();
     }
 
     public Action lookForRequirement(){
@@ -187,7 +188,7 @@ public class BasicAgent extends Agent {
             IntegerPair nextLoc = path.get(0);
             return moveTo(nextLoc);
         }
-        return null;
+        return explore();
     }
 
     public boolean hasDoneTask(Map<Block, Boolean> requirementsTocheck){
@@ -250,7 +251,8 @@ public class BasicAgent extends Agent {
     }
 
     public List<IntegerPair> getShortestPathByType(CellType ct, String detail) {
-        BFSsearch bfs = new BFSsearch(this.mapHandler, this.length, this.width);
+        boolean failed = this.perceptionHandler.getFailed();
+        BFSsearch bfs = new BFSsearch(this.mapHandler, this.length, this.width, failed);
         List<IntegerPair> path = bfs.bfsByType(ct, detail);
         return path;
     }
@@ -262,7 +264,8 @@ public class BasicAgent extends Agent {
     }
 
     public Action explore(){
-        BFSsearch bfs = new BFSsearch(this.mapHandler, this.length, this.width);
+        /*boolean failed = this.perceptionHandler.getFailed();
+        BFSsearch bfs = new BFSsearch(this.mapHandler, this.length, this.width, failed);
         List<IntegerPair> path = bfs.bfsByType(CellType.Unknown,"");
         System.out.println("Agent Location: " + "("+mapHandler.getAgentLocation().getX()+","+mapHandler.getAgentLocation().getY()+")");
         System.out.println("Path: ");
@@ -272,8 +275,39 @@ public class BasicAgent extends Agent {
 
         if(path.size()>1){
             return moveTo(path.get(1));
+        }*/
+        IntegerPair agentLocation = this.mapHandler.getAgentLocation();
+        int [] directionInX = {-1,1,0,0};
+        int [] directionInY = {0,0,1,-1};
+        
+        int [] unknownInX = {-6,6,0,0};
+        int [] unknownInY = {0,0,6,-6};
+        for(int i=0; i<4; i++){
+            int newPosX = agentLocation.getX() + directionInX[i];
+            int newPosY = agentLocation.getY() + directionInY[i];
+            IntegerPair newCellPos =  new IntegerPair(newPosX, newPosY);
+            int unknownX = agentLocation.getX() + unknownInX[i];
+            int unknownY = agentLocation.getY() + unknownInY[i];
+            IntegerPair unknownPos =  new IntegerPair(unknownX, unknownY);
+            if(!mapHandler.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Empty)){
+                continue;
+            }
+            if(!mapHandler.getMap()[unknownPos.getX()][unknownPos.getY()].getType().equals(CellType.Unknown)){
+                continue;
+            }
+            return moveTo(newCellPos);
         }
-        return null;
+        return moveRandom();
+        
+    }
+    
+    private Action moveRandom(){
+        Random rand = new Random();
+        int r = rand.nextInt(100);
+        if(r < 25) return new Action("move", new Identifier("n"));
+        if(r < 50) return new Action("move", new Identifier("s"));
+        if(r < 75) return new Action("move", new Identifier("e"));
+        return new Action("move", new Identifier("w"));
     }
 
 

@@ -9,20 +9,31 @@ import massim.javaagents.utils.OrdinaryCell;
 import massim.javaagents.utils.Thing;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class MapHandler {
     private Cell[][] map;
     private IntegerPair agentLocation;
     private List<IntegerPair> blocksLocationslist;
     private List<IntegerPair> dispensersLocationslist;
-    Map<IntegerPair, String> blocksTypeMap = new HashMap<>();
-    Map<IntegerPair, String> dipensersTypeMap = new HashMap<>();
+    Map<IntegerPair, String> blocksTypeMap;
+    Map<IntegerPair, String> dispensersTypeMap;
 
     public MapHandler() {
         blocksLocationslist = new ArrayList<IntegerPair>();
         dispensersLocationslist = new ArrayList<IntegerPair>();
+        blocksTypeMap = new HashMap<>();
+        dispensersTypeMap = new HashMap<>();
     }
-
+    
+    public Map<IntegerPair,String> getDispensersByType(String type){
+        return dispensersTypeMap.entrySet().stream().filter(p -> p.getValue().equals(type)).collect(Collectors.toMap(map -> map.getKey(), map -> map.getValue()));
+    }
+    
+    public Map<IntegerPair,String> getBlocksByType(String type){
+        return blocksTypeMap.entrySet().stream().filter(p -> p.getValue().equals(type)).collect(Collectors.toMap(map -> map.getKey(), map -> map.getValue()));
+    }
+    
     public IntegerPair getAgentLocation() {
         return agentLocation;
     }
@@ -44,7 +55,7 @@ public class MapHandler {
     }
 
     public Map<IntegerPair, String> getDipensersTypeMap() {
-        return dipensersTypeMap;
+        return dispensersTypeMap;
     }
 
     public void initiateMap(int length, int width, IntegerPair agentMovement) {
@@ -87,7 +98,7 @@ public class MapHandler {
         }
         for (var item : items) {
             int agent_x = this.agentLocation.getX();
-            int agent_y = this.agentLocation.getX();
+            int agent_y = this.agentLocation.getY();
             int x = item.getX() + agent_x;
             int y = item.getY() + agent_y;
             this.map[x][y] = new OrdinaryCell(itemCellType);
@@ -119,7 +130,7 @@ public class MapHandler {
                     blocksTypeMap.put(new IntegerPair(x,y), item.getType());
                 case "Dispensers":
                     dispensersLocationslist.add(new IntegerPair(x, y));
-                    dipensersTypeMap.put(new IntegerPair(x,y), item.getType());
+                    dispensersTypeMap.put(new IntegerPair(x,y), item.getType());
             }
         }
     }

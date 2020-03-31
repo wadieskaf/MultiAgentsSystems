@@ -16,5 +16,17 @@ public class IntegerPair {
     public int getY() {
         return y;
     }
+    
+    @Override
+    public boolean equals(Object o){
+        if(o == this) return true;
+        
+        if(!(o instanceof IntegerPair)){
+            return false;
+        }
+        
+        IntegerPair t = (IntegerPair)o;
+        return x == t.x && y == t.y;
+    }
 
 }

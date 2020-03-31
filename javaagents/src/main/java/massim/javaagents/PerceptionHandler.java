@@ -58,6 +58,12 @@ public class PerceptionHandler {
 		return perceptToTask(taskPercepts);
 	}
 	
+	public Boolean getFailed(){
+		String actionResult = getStringParameter(filterByName("lastActionResult").get(0), 0);
+		if(actionResult.equals("success")) return false;
+		return true;
+	}
+	
 	public List<Thing> getEmpty(){
 		List<Thing> empties = new LinkedList<>();
 		for(int i = -5; i <= 5; ++i){

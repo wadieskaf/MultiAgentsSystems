@@ -19,7 +19,8 @@ public class BackTrackSearch {
 
     public BackTrackSearch(MapHandler mapHandler, int agentVision){
         this.visitedNodes = new ArrayList<>();
-        this.currentAgentLocation = this.initialAgentLocation = mapHandler.getAgentLocation();
+        this.currentAgentLocation = mapHandler.getAgentLocation();
+        this.initialAgentLocation = mapHandler.getAgentLocation();
         this.stuckTypes = new ArrayList<>(
                 List.of(CellType.Obstacle)
         );
@@ -99,7 +100,8 @@ public class BackTrackSearch {
     public Boolean search(MapHandler mapHandler){
         List<IntegerPair> possibleMovements = new ArrayList<>();
         for (IntegerPair movement:this.possibleMovementsCoordinates){
-            if (checkMovement(movement)){
+            IntegerPair nextLocation = this.currentAgentLocation.add(movement);
+            if (checkMovement(movement) && !this.visitedNodes.contains(nextLocation)){
                 possibleMovements.add(movement);
             }
         }
@@ -116,9 +118,9 @@ public class BackTrackSearch {
         }
         int stuckCount=0;
 
-        for (IntegerPair i: possibleMovements) {
-            Cell cell = mapHandler.getCell(currentAgentLocation.add(i));
-            if (stuckTypes.contains(cell.getType()) || visitedNodes.contains(currentAgentLocation.add(i))) {
+        for (IntegerPair movement: possibleMovements) {
+            IntegerPair nextLocation = this.currentAgentLocation.add(movement);
+            if (stuckTypes.contains(mapHandler.getCell(nextLocation).getType())) {
                 ++stuckCount;
             }
         }
@@ -126,13 +128,11 @@ public class BackTrackSearch {
             return false;
         }
         for (IntegerPair movement:possibleMovements){
-            if (this.visitedNodes.contains(currentAgentLocation.add(movement))){
-                continue;
-            }
+            IntegerPair nextLocation = currentAgentLocation.add(movement);
             this.path.add(movement);
-            this.visitedNodes.add(currentAgentLocation.add(movement));
-            this.currentAgentLocation = this.currentAgentLocation.add(movement);
-           mapHandler.moveAgent(movement);
+            this.visitedNodes.add(nextLocation);
+            this.currentAgentLocation = nextLocation;
+            mapHandler.moveAgent(movement);
             if (search(mapHandler)){
                 return true;
             }

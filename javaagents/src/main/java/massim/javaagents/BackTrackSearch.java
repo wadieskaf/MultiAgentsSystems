@@ -112,7 +112,7 @@ public class BackTrackSearch {
         }
         if (this.visionBorders.contains(this.currentAgentLocation)) {
             for(IntegerPair movement:possibleMovements){
-                if (mapHandler.getCell(currentAgentLocation.add(movement)).getType() == CellType.Unknown) {
+                if (this.mapHandler.getCell(currentAgentLocation.add(movement)).getType() == CellType.Unknown) {
                     return true;
                 }
             }
@@ -122,7 +122,7 @@ public class BackTrackSearch {
 
         for (IntegerPair movement: possibleMovements) {
             IntegerPair nextLocation = this.currentAgentLocation.add(movement);
-            if (stuckTypes.contains(mapHandler.getCell(nextLocation).getType())) {
+            if (stuckTypes.contains(this.mapHandler.getCell(nextLocation).getType())) {
                 ++stuckCount;
             }
         }

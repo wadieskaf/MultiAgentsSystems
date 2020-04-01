@@ -108,11 +108,11 @@ public class BackTrackSearch {
         }
         if (this.visionBorders.contains(this.currentAgentLocation)) {
             for(IntegerPair movement:possibleMovements){
-                if (mapHandler.getCell(currentAgentLocation.add(movement)).getType() == CellType.Unknown){
+                if (mapHandler.getCell(currentAgentLocation.add(movement)).getType() == CellType.Unknown) {
                     return true;
                 }
-                return false;
             }
+            return false;
         }
         int stuckCount=0;
 

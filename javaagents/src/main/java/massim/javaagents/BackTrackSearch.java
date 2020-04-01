@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BackTrackSearch {
+    private MapHandler mapHandler;
     private List<IntegerPair> visitedNodes;
     private IntegerPair currentAgentLocation;
     private IntegerPair initialAgentLocation;
@@ -18,6 +19,7 @@ public class BackTrackSearch {
     List<IntegerPair> possibleMovementsCoordinates;
 
     public BackTrackSearch(MapHandler mapHandler, int agentVision){
+        this.mapHandler = mapHandler;
         this.visitedNodes = new ArrayList<>();
         this.currentAgentLocation = mapHandler.getAgentLocation();
         this.initialAgentLocation = mapHandler.getAgentLocation();
@@ -97,7 +99,7 @@ public class BackTrackSearch {
         }
         return visionBorders;
     }
-    public Boolean search(MapHandler mapHandler){
+    public Boolean search(){
         List<IntegerPair> possibleMovements = new ArrayList<>();
         for (IntegerPair movement:this.possibleMovementsCoordinates){
             IntegerPair nextLocation = this.currentAgentLocation.add(movement);
@@ -132,13 +134,11 @@ public class BackTrackSearch {
             this.path.add(movement);
             this.visitedNodes.add(nextLocation);
             this.currentAgentLocation = nextLocation;
-            mapHandler.moveAgent(movement);
-            if (search(mapHandler)){
+            if (search()){
                 return true;
             }
             this.path.remove(path.size() - 1);
             this.currentAgentLocation = this.currentAgentLocation.add(movement.inverse());
-            mapHandler.moveAgent(movement.inverse());
 
         }
         return false;

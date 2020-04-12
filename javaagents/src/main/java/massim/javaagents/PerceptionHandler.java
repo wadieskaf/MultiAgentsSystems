@@ -40,6 +40,10 @@ public class PerceptionHandler {
 	public List<Thing> getGoals() {
 		return getThingsByName("goal");
 	}
+	
+	public List<Thing> getAttached(){
+		return getThingsByName("attached");
+	}
 
 	public List<Block> getBlocks() {
 		List<Percept> blocks = filterByType("block")

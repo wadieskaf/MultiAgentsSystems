@@ -26,7 +26,7 @@
 
       "steps" : 500,
       "randomSeed" : 1,
-      "randomFail" : 1,
+      "randomFail" : 0,
       "entities" : [{"standard" : 10}],
 
       "clearSteps" : 3,

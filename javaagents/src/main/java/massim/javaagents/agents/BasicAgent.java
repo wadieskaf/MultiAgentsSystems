@@ -7,11 +7,13 @@ import java.util.*;
 
 import massim.javaagents.utils.*;
 
+
 /**
  * A very basic agent.
  */
 public class BasicAgent extends Agent {
-
+    private enum State{Exploring, MovingToDispenser, NearDispenser, NearBlock, MovingToGoal, AtGoal}
+    
     private MapHandler mapHandler;
     private PerceptionHandler perceptionHandler;
     private int agent_x, agent_y;//for testing
@@ -24,6 +26,9 @@ public class BasicAgent extends Agent {
     private boolean requested;
     private List<IntegerPair> activePath;
     private int step;
+    
+    private Block requirement;
+    private State state;
     /**
      * Constructor.
      * @param name    the agent's name
@@ -44,6 +49,9 @@ public class BasicAgent extends Agent {
         this.requested = false;
         this.activePath = new LinkedList<>();
         this.step = 0;
+        
+        this.requirement = null;
+        this.state = State.Exploring;
     }
 
     @Override
@@ -61,17 +69,126 @@ public class BasicAgent extends Agent {
 
         //PHASE 2 (Internal State) - Agent updates its internal state
         this.mapHandler.updateMap(perceptionHandler);//needs to check if lastAction was successful before updating...
-        String mapPath = "maps\\" + step + ".txt";
-        mapHandler.printMapToFile(mapPath);
+        //String mapPath = "maps\\" + step + ".txt";
+        //mapHandler.printMapToFile(mapPath);
 
         //PHASE 3 (Deliberate) - Agent tries to figure out what is the best action to perform given his current state and his previous action
-        step++;
-        return workThoseNeurons();
+		step++;
+		return doShit();
+        //return workThoseNeurons();
 
         /*//PHASE 4 (ACT) - Execute chosen action to achieve goal
         return action;*/
     }
-
+    private Action doShit(){
+        switch(state){
+            case Exploring:
+                return doExplore();
+            case MovingToDispenser:
+                return moveToDispenser(requirement.getType());
+            case NearDispenser:
+                return requestBlock(requirement.getType());
+            case NearBlock:
+                return attachBlock(requirement.getType());
+            case MovingToGoal:
+                return moveToGoal();
+            case AtGoal:
+                return submit();
+            
+        }
+        
+        return new Action("skip");
+    }
+    
+    private Action doExplore(){
+        List<Task> tasks = this.perceptionHandler.getTasks();
+        if(!tasks.isEmpty()){
+            state = State.MovingToDispenser;
+			activeTask = tasks.get(0);
+			requirement = activeTask.getRequirement();
+            String detail = requirement.getType();
+            Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
+            if(!dispensers.isEmpty()) return moveToDispenser(detail);
+        }
+        return explore();
+    }
+    
+    private Action moveToDispenser(String detail){
+        if(activePath.isEmpty() || perceptionHandler.getFailed()){
+            activePath = lookForDispenserV2(detail); //action can be "move" if going for a dispenser | "request" if already near a dispenser | "attach" if we have requested a block from the dispenser || "null" if we haven't seen any dispenser yet
+            activePath.remove(0);
+            //return moveTo(activePath.remove(0));
+		}
+		if(!dispenserOnMySide(detail).equals("")){
+			state = State.NearDispenser;
+			activePath = new LinkedList<>();
+			return requestBlock(detail);
+		}
+		return moveTo(activePath.remove(0));
+	}
+	
+	private Action requestBlock(String detail){
+		String direction = dispenserOnMySide(detail);
+		String blockDir = blockOnMySide(detail);
+		
+		if(!blockDir.equals("")){
+			state = State.NearBlock;
+			return attachBlock(detail);
+		}
+		
+		if(direction.equals("")){
+			state = State.Exploring;
+			activeTask = null;
+			requirement = null;
+			return doExplore();
+		}
+		return new Action("request", new Identifier(direction));
+	}
+	
+	private Action attachBlock(String detail){
+		String blockDir = blockOnMySide(detail);
+		if(blockDir.equals("")){
+			state = State.NearDispenser;
+			return requestBlock(detail);
+		}
+		state = State.MovingToGoal;
+		return new Action("attach", new Identifier(blockDir));
+	}
+	
+	private Action moveToGoal(){
+		if(isGoal()){
+			state = State.AtGoal;
+			return submit();
+		}
+		List<IntegerPair> goals = mapHandler.getGoalList();
+		if(goals.isEmpty()){
+			return explore();
+		}
+		if(activePath.isEmpty()){
+			activePath = getShortestPathByType(CellType.Goal, "");
+			activePath.remove(0);
+		}
+		//in case we our attached block gets stuck
+		if(perceptionHandler.getFailed()){
+			activePath = new LinkedList<>();
+			return moveRandom();
+		}
+		return moveTo(activePath.remove(0));
+	}
+	
+	private Action submit(){
+		List<Thing> attacheds = perceptionHandler.getAttached();
+		if(attacheds.isEmpty()){
+			state = State.MovingToDispenser;
+			explore();
+		}
+		Thing attached = attacheds.get(0);
+		if(attached.getX() != requirement.getX() || attached.getY() != requirement.getY()){
+			return new Action("rotate", new Identifier("cw"));
+		}
+		state = State.Exploring;
+		return new Action("submit", new Identifier(activeTask.getName()));
+	}
 
     public Action workThoseNeurons(){
         List<Task> tasks = this.perceptionHandler.getTasks();
@@ -241,7 +358,7 @@ public class BasicAgent extends Agent {
         return "";
     }
 
-    public Action blockOnMySide(String detail){
+    public String blockOnMySide(String detail){
         int [] directionInX = {-1,1,0,0};
         int [] directionInY = {0,0,1,-1};
 
@@ -249,13 +366,13 @@ public class BasicAgent extends Agent {
         for(int i=0; i<4; i++){
             int x = directionInX[i];
             int y = directionInY[i];
-            if(this.mapHandler.getMap()[this.mapHandler.getAgentLocation().getX() + x][this.mapHandler.getAgentLocation().getY() + y].getType().equals(CellType.Block)){ //!!!MISSING CONDITION TYPE OF BLOCK (DETAILS)
+            IntegerPair pos = new IntegerPair(this.mapHandler.getAgentLocation().getX() + x, this.mapHandler.getAgentLocation().getY() + y);
+			if(this.mapHandler.getCell(pos).getType().equals(CellType.Block) && ((DetailedCell)mapHandler.getCell(pos)).getDetails().equals(detail)){
                 String direction = coordinatesToDirection(new IntegerPair(x,y));
-                //!!!!!!!!!!HANDLE HOW TO ATTACH IF ALREADY HAVE BLOCKS ATTACHED!!!!!!!!!
-                return new Action("attach", new Identifier(direction));
+				return direction;
             }
         }
-        return null;
+        return "";
     }
 
     public String dispenserOnMySide(String detail){
@@ -265,12 +382,11 @@ public class BasicAgent extends Agent {
         //for each direction -> check
         for(int i=0; i<4; i++){
             int x = directionInX[i];
-            int y = directionInY[i];
-            if(this.mapHandler.getMap()[this.mapHandler.getAgentLocation().getX() + x][this.mapHandler.getAgentLocation().getY() + y].getType().equals(CellType.Dispenser)){ //!!!MISSING CONDITION TYPE OF BLOCK (DETAILS)
+			int y = directionInY[i];
+			IntegerPair pos = new IntegerPair(this.mapHandler.getAgentLocation().getX() + x, this.mapHandler.getAgentLocation().getY() + y);
+			if(this.mapHandler.getCell(pos).getType().equals(CellType.Dispenser) && ((DetailedCell)mapHandler.getCell(pos)).getDetails().equals(detail)){
                 String direction = coordinatesToDirection(new IntegerPair(x,y));
                 return direction;
-                //!!!!!!!!!!HANDLE HOW TO REQUEST IF ALREADY HAVE BLOCKS ATTACHED!!!!!!!!!
-                //return new Action("request", new Identifier(direction));
             }
         }
         return "";
@@ -290,18 +406,6 @@ public class BasicAgent extends Agent {
     }
 
     public Action explore(){
-        /*boolean failed = this.perceptionHandler.getFailed();
-        BFSsearch bfs = new BFSsearch(this.mapHandler, this.length, this.width, failed);
-        List<IntegerPair> path = bfs.bfsByType(CellType.Unknown,"");
-        System.out.println("Agent Location: " + "("+mapHandler.getAgentLocation().getX()+","+mapHandler.getAgentLocation().getY()+")");
-        System.out.println("Path: ");
-        for(var p: path){
-            System.out.print("("+p.getX()+","+p.getY()+"), ");
-        }
-
-        if(path.size()>1){
-            return moveTo(path.get(1));
-        }*/
         IntegerPair agentLocation = this.mapHandler.getAgentLocation();
         int [] directionInX = {-1,1,0,0};
         int [] directionInY = {0,0,1,-1};

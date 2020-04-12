@@ -20,14 +20,20 @@ public class MapHandler {
     private IntegerPair agentLocation;
     private List<IntegerPair> blocksLocationslist;
     private List<IntegerPair> dispensersLocationslist;
-    Map<IntegerPair, String> blocksTypeMap;
-    Map<IntegerPair, String> dispensersTypeMap;
+    private Map<IntegerPair, String> blocksTypeMap;
+    private Map<IntegerPair, String> dispensersTypeMap;
+    private List<IntegerPair> goalList;
 
     public MapHandler() {
         blocksLocationslist = new ArrayList<IntegerPair>();
         dispensersLocationslist = new ArrayList<IntegerPair>();
         blocksTypeMap = new HashMap<>();
         dispensersTypeMap = new HashMap<>();
+        goalList = new LinkedList<>();
+    }
+    
+    public List<IntegerPair> getGoalList(){
+        return goalList;
     }
     
     public void printMapToFile(String path){
@@ -133,6 +139,9 @@ public class MapHandler {
             int agent_y = this.agentLocation.getY();
             int x = item.getX() + agent_x;
             int y = item.getY() + agent_y;
+            if(itemCellType == CellType.Goal){
+                goalList.add(new IntegerPair(x,y));
+            }
             this.map[x][y] = new OrdinaryCell(itemCellType);
 
         }
@@ -189,8 +198,8 @@ public class MapHandler {
         addOrdinaryItemsToMap(obstacles, "Obstacles");
         addOrdinaryItemsToMap(goals, "Goals");
         addOrdinaryItemsToMap(empty, "Empty");
-        addDetailedItemsToMap(blocks, "Blocks");
         addDetailedItemsToMap(dispensers, "Dispensers");
+        addDetailedItemsToMap(blocks, "Blocks");
 
     }
 }

@@ -25,7 +25,7 @@
       "NOsetup" : "conf/setup/test.txt",
 
       "steps" : 500,
-      "randomSeed" : 17,
+      "randomSeed" : 1,
       "randomFail" : 1,
       "entities" : [{"standard" : 10}],
 
@@ -54,7 +54,7 @@
       "dispensers" : [5, 10],
 
       "tasks" : {
-        "size" : [2, 4],
+        "size" : [1, 1],
         "duration" : [100, 200],
         "probability" : 0.05
       },

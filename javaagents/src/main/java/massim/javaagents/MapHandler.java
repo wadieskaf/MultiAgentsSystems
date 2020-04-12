@@ -8,6 +8,10 @@ import massim.javaagents.utils.IntegerPair;
 import massim.javaagents.utils.OrdinaryCell;
 import massim.javaagents.utils.Thing;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,6 +28,28 @@ public class MapHandler {
         dispensersLocationslist = new ArrayList<IntegerPair>();
         blocksTypeMap = new HashMap<>();
         dispensersTypeMap = new HashMap<>();
+    }
+    
+    public void printMapToFile(String path){
+        try {
+            File myObj = new File(path);
+            myObj.createNewFile();
+            FileWriter myWriter = new FileWriter(myObj);
+            for(var row : map){
+                for(var cell : row){
+                    if(cell.getType().equals(CellType.Unknown)) myWriter.write("x");
+                    else if(cell.getType().equals(CellType.Dispenser)) myWriter.write("!");
+                    else if(cell.getType().equals(CellType.Teammate)) myWriter.write("1");
+                    else if(cell.getType().equals(CellType.Obstacle)) myWriter.write("2");
+                    else myWriter.write("0");
+                }
+                myWriter.write("\n");
+            }
+            myWriter.close();
+          } catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+          }
     }
     
     public Map<IntegerPair,String> getDispensersByType(String type){
@@ -126,7 +152,7 @@ public class MapHandler {
         }
         for (var item : items) {
             int agent_x = this.agentLocation.getX();
-            int agent_y = this.agentLocation.getX();
+            int agent_y = this.agentLocation.getY();
             int x = item.getX() + agent_x;
             int y = item.getY() + agent_y;
             this.map[x][y] = new DetailedCell(itemCellType, item.getType());

@@ -22,6 +22,8 @@ public class BasicAgent extends Agent {
     private Map.Entry<Block, Boolean> activeRequirement;
     private Action action;
     private boolean requested;
+    private List<IntegerPair> activePath;
+    private int step;
     /**
      * Constructor.
      * @param name    the agent's name
@@ -40,6 +42,8 @@ public class BasicAgent extends Agent {
         this.activeRequirement = null;
         this.action = null;
         this.requested = false;
+        this.activePath = new LinkedList<>();
+        this.step = 0;
     }
 
     @Override
@@ -57,8 +61,11 @@ public class BasicAgent extends Agent {
 
         //PHASE 2 (Internal State) - Agent updates its internal state
         this.mapHandler.updateMap(perceptionHandler);//needs to check if lastAction was successful before updating...
+        String mapPath = "maps\\" + step + ".txt";
+        mapHandler.printMapToFile(mapPath);
 
         //PHASE 3 (Deliberate) - Agent tries to figure out what is the best action to perform given his current state and his previous action
+        step++;
         return workThoseNeurons();
 
         /*//PHASE 4 (ACT) - Execute chosen action to achieve goal
@@ -67,7 +74,6 @@ public class BasicAgent extends Agent {
 
 
     public Action workThoseNeurons(){
-
         List<Task> tasks = this.perceptionHandler.getTasks();
         action = null;
 
@@ -89,13 +95,19 @@ public class BasicAgent extends Agent {
                 action = lookForGoal(); //action can be "move" if going for goal | "submit" if already in goal cell | "null" if doesn't know where is goal
             }
         }
-
-        //if we are doing a requirement and it's not done -> the aent should fulfill it
-        if(activeRequirement != null && activeRequirement.getValue() == false){
-            String blockType = activeRequirement.getKey().getType();
-            action = lookForDispenser(blockType); //action can be "move" if going for a dispenser | "request" if already near a dispenser | "attach" if we have requested a block from the dispenser || "null" if we haven't seen any dispenser yet
+        
+        if(activePath.size() > 0 && !perceptionHandler.getFailed()){
+            action = moveTo(activePath.remove(0));
         }
-
+        
+        //if we are doing a requirement and it's not done -> the aent should fulfill it
+        if((activePath.size() == 0 || perceptionHandler.getFailed()) && activeRequirement != null && activeRequirement.getValue() == false){
+            String blockType = activeRequirement.getKey().getType();
+            activePath = lookForDispenserV2(blockType); //action can be "move" if going for a dispenser | "request" if already near a dispenser | "attach" if we have requested a block from the dispenser || "null" if we haven't seen any dispenser yet
+            activePath.remove(0);
+            action = moveTo(activePath.remove(0));
+        }
+        
         //if none of the previous conditions are met, it means no action has been chosen -> so explore
         if(action == null){
             action = explore();
@@ -112,10 +124,24 @@ public class BasicAgent extends Agent {
 
 
     //##################################### FUNCTIONS #####################################################
+    
+    
+    private List<IntegerPair> lookForDispenserV2(String detail){
+        Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
+        if(dispensers.size() > 0){
+            
+            List<IntegerPair> path = getShortestPathByType(CellType.Dispenser, detail);
+            if(path.size()>0){
+                return path;
+            }
+        }
+        return null;
+    }
 
     public Action lookForDispenser(String detail){
-        Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail); //!!!!MISSING DISPENSER TYPE!!!
+        Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
         if(dispensers.size() > 0 ){
+            
             List<IntegerPair> path = getShortestPathByType(CellType.Dispenser, detail);
             if(path.size()>2){
                 IntegerPair next_location = path.get(1);
@@ -251,9 +277,9 @@ public class BasicAgent extends Agent {
     }
 
     public List<IntegerPair> getShortestPathByType(CellType ct, String detail) {
-        boolean failed = this.perceptionHandler.getFailed();
-        BFSsearch bfs = new BFSsearch(this.mapHandler, this.length, this.width, failed);
-        List<IntegerPair> path = bfs.bfsByType(ct, detail);
+        //boolean failed = this.perceptionHandler.getFailed();
+        BFS2 bfs = new BFS2(this.mapHandler);
+        List<IntegerPair> path = bfs.BFS(ct, detail);
         return path;
     }
 

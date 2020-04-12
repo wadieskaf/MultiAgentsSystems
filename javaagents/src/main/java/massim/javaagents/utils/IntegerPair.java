@@ -1,5 +1,7 @@
 package massim.javaagents.utils;
 
+import java.util.Objects;
+
 public class IntegerPair {
     private int x;
     private int y;
@@ -15,6 +17,11 @@ public class IntegerPair {
 
     public int getY() {
         return y;
+    }
+    
+    @Override
+    public int hashCode() {
+        return Objects.hash(x,y);
     }
     
     @Override

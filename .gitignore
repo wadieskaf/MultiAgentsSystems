@@ -14,3 +14,4 @@ monitor/js/*.js
 docs/*.html
 .vscode
 .settings
+javaagents/maps

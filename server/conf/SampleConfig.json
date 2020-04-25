@@ -54,7 +54,7 @@
       "dispensers" : [5, 10],
 
       "tasks" : {
-        "size" : [1, 1],
+        "size" : [2,2],
         "duration" : [100, 200],
         "probability" : 0.05
       },

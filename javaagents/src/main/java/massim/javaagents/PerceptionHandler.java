@@ -14,13 +14,20 @@ import massim.javaagents.utils.Thing;
 public class PerceptionHandler {
 	private List<Percept> percepts;
 	private String team;
+	private String name;
 
 	public PerceptionHandler(List<Percept> percepts) {
 		this.percepts = percepts;
 		Percept teamPercept = filterByName("team").get(0);
 		team = ((Identifier) teamPercept.getParameters().get(0)).getValue().toString();
+		Percept namePercept = filterByName("name").get(0);
+		name = ((Identifier) namePercept.getParameters().get(0)).getValue().toString();
 	}
-
+	
+	public String getName(){
+		return name;
+	}
+	
 	public String getTeam() {
 		return team;
 	}
@@ -97,6 +104,14 @@ public class PerceptionHandler {
 		//wtf?!?!(but it works)
 		String direction = ((Identifier)((ParameterList)filterByName("lastActionParams").get(0).getParameters().get(0)).get(0)).getValue();
 		return dirToPos(direction);
+	}
+	
+	public Percept makePercept(String name, Object... params){
+		LinkedList<Parameter> parameters = new LinkedList<>();
+		for(var param : params){
+			parameters.add(javaToParameter(param));
+		}
+		return new Percept(name, parameters);
 	}
 
 	private List<Thing> getThingsByName(String name) {
@@ -181,6 +196,28 @@ public class PerceptionHandler {
 			res.add(block);
 		}
 		return res;
+	}
+	
+	private Parameter javaToParameter(Object object){
+		if(object instanceof Number){
+			return new Numeral((Number)object);
+		}
+		if(object instanceof String){
+			return new Identifier((String)object);
+		}
+		if(object instanceof List){
+			List<Object> list = (List<Object>)object;
+			List<Parameter> paramList = new LinkedList<>();
+			for(var par : list){
+				paramList.add(javaToParameter(par));
+			}
+			return new ParameterList(paramList);
+		}
+		if(object instanceof Percept){
+			Percept per = (Percept)object;
+			return new Function(per.getName(), per.getClonedParameters());
+		}
+		return null;
 	}
 
 	// get p percept's ith parameter if string

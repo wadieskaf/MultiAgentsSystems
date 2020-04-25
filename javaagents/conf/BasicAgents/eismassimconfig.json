@@ -9,5 +9,6 @@
   "queued": false,
   "entities": [
     {"name": "connectionA1", "username": "agentA1", "password": "1", "print-iilang": true, "print-json": false},
+    {"name": "connectionA2", "username": "agentA2", "password": "1", "print-iilang": true, "print-json": false}
   ]
 }

@@ -23,6 +23,7 @@ public class MapHandler {
     private Map<IntegerPair, String> blocksTypeMap;
     private Map<IntegerPair, String> dispensersTypeMap;
     private List<IntegerPair> goalList;
+    private Map<String, IntegerPair> teammatesTransform;
 
     public MapHandler() {
         blocksLocationslist = new ArrayList<IntegerPair>();
@@ -34,6 +35,10 @@ public class MapHandler {
     
     public List<IntegerPair> getGoalList(){
         return goalList;
+    }
+    
+    public void transformTeammate(IntegerPair teammateLocation, IntegerPair internalTeammate, String name){
+        teammatesTransform.put(name, teammateLocation.subtract(internalTeammate));
     }
     
     public void printMapToFile(String path){

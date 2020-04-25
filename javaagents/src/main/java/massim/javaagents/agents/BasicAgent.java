@@ -1,5 +1,6 @@
 package massim.javaagents.agents;
 
+import eis.eis2java.annotation.AsPercept;
 import eis.iilang.*;
 import massim.javaagents.*;
 
@@ -49,20 +50,30 @@ public class BasicAgent extends Agent {
         this.requested = false;
         this.activePath = new LinkedList<>();
         this.step = 0;
-        
+
         this.requirement = null;
         this.state = State.Exploring;
     }
+    
 
     @Override
     public void handlePercept(Percept percept) {}
 
     @Override
-    public void handleMessage(Percept message, String sender) {}
+    public void handleMessage(Percept message, String sender) {
+        say(((Identifier)message.getParameters().get(0)).getValue());
+        /*if(message.getName().equals("foundSomeone")){
+            if(/*doI have someone at that place){
+                save(sender);
+                sendMessage(makePercept("oh shit here you are", mapHandler.getAgentLocation().getX(), mapHandler.getAgentLocation().getY()), sender, getName());
+            }
+        }*/
+        
+    }
 
     @Override
     public Action step() {
-
+        
         //PHASE 1 (Sense) - Agent gets perceptions from Environment
         List<Percept> percepts = getPercepts();
         this.perceptionHandler = new PerceptionHandler(percepts);
@@ -71,16 +82,20 @@ public class BasicAgent extends Agent {
         this.mapHandler.updateMap(perceptionHandler);//needs to check if lastAction was successful before updating...
         //String mapPath = "maps\\" + step + ".txt";
         //mapHandler.printMapToFile(mapPath);
+        broadcast(perceptionHandler.makePercept("asd", "asdasd", 3, 5, Arrays.asList(1,2,3), percepts.get(0)), getName());
+        broadcast(perceptionHandler.makePercept("asd", "dsadsa"), getName());
+        broadcast(perceptionHandler.makePercept("foundSomeone", 4,0), getName());
+        
 
         //PHASE 3 (Deliberate) - Agent tries to figure out what is the best action to perform given his current state and his previous action
 		step++;
-		return doShit();
+		return chooseAction();
         //return workThoseNeurons();
 
         /*//PHASE 4 (ACT) - Execute chosen action to achieve goal
         return action;*/
     }
-    private Action doShit(){
+    private Action chooseAction(){
         switch(state){
             case Exploring:
                 return doExplore();

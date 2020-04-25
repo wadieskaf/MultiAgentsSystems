@@ -99,6 +99,10 @@ public class PerceptionHandler {
 		return dirToPos(direction);
 	}
 
+	public List<Thing> getMessages(){
+		return null;
+	}
+
 	private List<Thing> getThingsByName(String name) {
 		List<Percept> filteredPercepts = filterByName(name);
 		return perceptToThing(filteredPercepts);

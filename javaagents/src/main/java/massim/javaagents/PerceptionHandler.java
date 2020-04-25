@@ -106,6 +106,14 @@ public class PerceptionHandler {
 		return dirToPos(direction);
 	}
 	
+	public Percept makePercept(String name, int[] params){
+		LinkedList<Parameter> parameters = new LinkedList<>();
+		for(var param : params){
+			parameters.add(javaToParameter(param));
+		}
+		return new Percept(name, parameters);
+	}
+	
 	public Percept makePercept(String name, Object... params){
 		LinkedList<Parameter> parameters = new LinkedList<>();
 		for(var param : params){

@@ -114,6 +114,10 @@ public class PerceptionHandler {
 		return new Percept(name, parameters);
 	}
 
+	public List<Thing> getMessages(){
+		return null;
+	}
+
 	private List<Thing> getThingsByName(String name) {
 		List<Percept> filteredPercepts = filterByName(name);
 		return perceptToThing(filteredPercepts);

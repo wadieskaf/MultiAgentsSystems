@@ -207,4 +207,8 @@ public class MapHandler {
         addDetailedItemsToMap(blocks, "Blocks");
 
     }
+
+    public IntegerPair getTransform(IntegerPair a, IntegerPair b){
+        return null;
+    }
 }

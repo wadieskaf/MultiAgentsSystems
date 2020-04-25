@@ -2,7 +2,7 @@
   "server" : {
     "tournamentMode" : "round-robin",
     "teamsPerMatch" : 2,
-    "teamSize" : 10,
+    "teamSize" : 5,
     "launch" : "key",
     "port" : 12300,
     "backlog" : 10000,
@@ -27,7 +27,7 @@
       "steps" : 500,
       "randomSeed" : 1,
       "randomFail" : 0,
-      "entities" : [{"standard" : 10}],
+      "entities" : [{"standard" : 5}],
 
       "clearSteps" : 3,
       "clearEnergyCost" : 30,
@@ -54,7 +54,7 @@
       "dispensers" : [5, 10],
 
       "tasks" : {
-        "size" : [2,2],
+        "size" : [2, 2],
         "duration" : [100, 200],
         "probability" : 0.05
       },

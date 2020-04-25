@@ -8,9 +8,8 @@ import java.util.*;
 
 import massim.javaagents.utils.*;
 
-
 /**
- * A very basic agent.
+ * A not very basic agent.
  */
 public class BasicAgent extends Agent {
     private enum State{Exploring, MovingToDispenser, NearDispenser, NearBlock, MovingToGoal, AtGoal}
@@ -19,7 +18,6 @@ public class BasicAgent extends Agent {
     private PerceptionHandler perceptionHandler;
     private int agent_x, agent_y;//for testing
     private IntegerPair agentMovement;
-    private boolean hasBlockAttached;
     private int length, width;
     private Task activeTask;
     private Map.Entry<Block, Boolean> activeRequirement;
@@ -27,9 +25,13 @@ public class BasicAgent extends Agent {
     private boolean requested;
     private List<IntegerPair> activePath;
     private int step;
-    
     private Block requirement;
     private State state;
+    private int [] myTaskWeights;
+    private Map<String, IntegerPair> teamMatesTrans;
+    private boolean helpArrived = false;
+
+
     /**
      * Constructor.
      * @param name    the agent's name
@@ -50,7 +52,6 @@ public class BasicAgent extends Agent {
         this.requested = false;
         this.activePath = new LinkedList<>();
         this.step = 0;
-
         this.requirement = null;
         this.state = State.Exploring;
     }
@@ -89,13 +90,39 @@ public class BasicAgent extends Agent {
 
         //PHASE 3 (Deliberate) - Agent tries to figure out what is the best action to perform given his current state and his previous action
 		step++;
-		return chooseAction();
-        //return workThoseNeurons();
+		Action act = chooseAction();
 
-        /*//PHASE 4 (ACT) - Execute chosen action to achieve goal
-        return action;*/
+        //PHASE 4 (ACT) - Execute chosen action to achieve goal
+        return  act;
     }
+
     private Action chooseAction(){
+
+        //CHECK WHERE TO FIT SELECTION PROCESS.... WHEN TO RESTART THE WEIGHTS.. PROBABLY WHEN HE IS DONE..
+        //ALSO CHECK WHEN TASKS ARE HANDLED... HOW TO MARK THEM SO THAT AGENTS THAT DIDN'T RECEIVE ANYTHING DON'T INTERFEER....
+
+        //If Agent sees a teammate -> share relative positions!
+        if(this.perceptionHandler.getTeammates().size() > 0){
+            shareRelativePositions();
+        }
+
+        if(this.perceptionHandler.getMessages().size() > 0){
+            for(var message : this.perceptionHandler.getMessages()){
+                if(message.toString().equals("Weights")){
+
+                }
+                else if(message.toString().equals("Help")){
+                    /*activeTask = message.getDetails();
+                    requirement = activeTask.getRequirement();
+                    state = State.MovingToDispenser;*/
+                }
+                else if(message.toString().equals("Connect")){
+
+                }
+            }
+        }
+
+        //treat how to receive this messages.....
         switch(state){
             case Exploring:
                 return doExplore();
@@ -108,22 +135,164 @@ public class BasicAgent extends Agent {
             case MovingToGoal:
                 return moveToGoal();
             case AtGoal:
-                return submit();
-            
+                //HELP ON THE WAY...
+                if(helpArrived){//if teamMate has arrived, now connect blocks
+                    connectBLocks();//part of the submit should move here...the part of rotating..
+                    return submit();
+                }
+                else if(helpArrived==false && teamMatesTrans.size() > 0){
+                    callforHelp(teamMatesTrans); //broadcast to all teamMates
+                }
+                else{
+                    //skip Action..wait until someone see's u :P
+                    //maybe if task size 1...
+                    //return submit();
+                }
         }
         
         return new Action("skip");
     }
-    
+
+    //##################################### HELPER FUNCTIONS #####################################################
+
+    private void connectBLocks(){
+
+    }
+
+    private void callforHelp(Map<String, IntegerPair> mates){
+
+    }
+
+    private void shareRelativePositions(){
+        for(var teamMate : this.perceptionHandler.getTeammates()){
+            String teamMateName = teamMate.toString();//MISSING METHOD TO GET NAME
+            IntegerPair teamMateOwnLocation = askTeamMateLocation(teamMateName);
+            IntegerPair teamMateLocationInMyInternalMap = new IntegerPair(teamMate.getX(),teamMate.getY());
+            IntegerPair teamMateTransform = this.mapHandler.getTransform(teamMateOwnLocation, teamMateLocationInMyInternalMap);
+
+            teamMatesTrans.put(teamMateName, teamMateTransform);
+        }
+    }
+
+    private IntegerPair askTeamMateLocation(String name){
+        return null;//ADAM!!!
+    }
+
+    private int[] weightTasks(){
+        //check if I have seen all the types of blocks/dispensers specified in the requirements
+        List<Task> tasks = this.perceptionHandler.getTasks();
+        int [] taskWeights = new int[tasks.size()];
+        for(int i=0; i<tasks.size(); i++){
+            taskWeights[i] = -1;
+        }
+
+        int i = 0;
+        for(Task task : tasks){
+            for (Map.Entry<Block,Boolean> requirement : task.getRequirements().entrySet()){
+                String detail = requirement.getKey().getType();
+                Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
+                if(!dispensers.isEmpty()){
+                    List<IntegerPair> p = lookForDispenserV2(detail);
+                    taskWeights[i] += p.size();
+                }
+            }
+            i++;
+        }
+        return taskWeights;
+    }
+
+    private void sendMyTaskWeights(int [] weights){
+        this.myTaskWeights = weights;
+        //send from Adam....
+    }
+
+    //this will return the tasksweights of all the other agents...
+    private List<int []> getTaskInfoFromOthers(){
+        //then get from others..Adam...
+        return null;
+    }
+
+    private Task chooseAvailableTask(){
+        //Weight my tasks
+        this.myTaskWeights = weightTasks();
+
+        System.out.println("");
+        System.out.println("!!!!!!!!!!!!!!!!!!!!!");
+        System.out.print("Tasks Weights: ");
+        for(int i=0; i<this.perceptionHandler.getTasks().size(); i++){
+            System.out.print(this.myTaskWeights[i] + ", ");
+        }
+        System.out.println("");
+        System.out.println("!!!!!!!!!!!!!!!!!!!!");
+
+
+
+        //send my weights to others
+        sendMyTaskWeights(this.myTaskWeights);
+
+        //receive the weights from others
+        List<int []> tasksFromOthers = getTaskInfoFromOthers();
+
+        //now compare and check who does what
+        int size = this.perceptionHandler.getTasks().size();
+        int [] doWhatTask = new int[size];
+
+        for(var taskOther : tasksFromOthers){ //iterate over the taskWeights of other Agents...
+            for(int i=0; i<size; i++){//taskWeights is an array [3,5,6]
+                if(this.myTaskWeights[i] < 0){ //if my weight is -1
+                    doWhatTask[i] = 0;
+                }
+                else if(this.myTaskWeights[i] >= 0 && taskOther[i] < 0){
+                    doWhatTask[i] = 1;
+                }
+                else if(this.myTaskWeights[i] < taskOther[i]){
+                    doWhatTask[i] = 1;
+                }
+                else{
+                    doWhatTask[i] = 0;
+                }
+            }
+        }
+        //if more than one... pick the minimum and inform....broadcast..ok, I am doing this...
+
+        int minIndex = -1;
+        int minScore = 1000;
+
+
+
+        for (int i=0; i<size; i++){
+            if(doWhatTask[i] == 1){
+                if(this.myTaskWeights[i] >= 0 && this.myTaskWeights[i] < minScore){
+                    minIndex = i;
+                }
+            }
+        }
+
+        //If there is a task for him -> Go for it
+        if(minIndex != -1){
+            Task t = this.perceptionHandler.getTasks().remove(minIndex);
+            //make it activeTask
+            //send message... "OK I am doing this"
+            return t;
+        }
+
+        return null;
+    }
+
     private Action doExplore(){
         List<Task> tasks = this.perceptionHandler.getTasks();
-        if(!tasks.isEmpty()){
+        if(!tasks.isEmpty()){ //!!ATTENTION!! BECAUSE WE ARE REMOVING THE TASK ONCE ITS ASSIGNED... IS THERE A POSSIBILITY TO COME HERE....
+			activeTask = chooseAvailableTask();
+			if(activeTask == null){
+			    return explore();
+			}
             state = State.MovingToDispenser;
-			activeTask = tasks.get(0);
 			requirement = activeTask.getRequirement();
             String detail = requirement.getType();
+            //MAYBE REMOVE THIS!!!!
             Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
             if(!dispensers.isEmpty()) return moveToDispenser(detail);
+            //SO THE STATE HAS CHANGED BUT IF DISPENSERS IS EMPTY??? THE STATE NEEDS TO GO BACK TO NORMAL
         }
         return explore();
     }
@@ -132,7 +301,6 @@ public class BasicAgent extends Agent {
         if(activePath.isEmpty() || perceptionHandler.getFailed()){
             activePath = lookForDispenserV2(detail); //action can be "move" if going for a dispenser | "request" if already near a dispenser | "attach" if we have requested a block from the dispenser || "null" if we haven't seen any dispenser yet
             activePath.remove(0);
-            //return moveTo(activePath.remove(0));
 		}
 		if(!dispenserOnMySide(detail).equals("")){
 			state = State.NearDispenser;
@@ -205,59 +373,6 @@ public class BasicAgent extends Agent {
 		return new Action("submit", new Identifier(activeTask.getName()));
 	}
 
-    public Action workThoseNeurons(){
-        List<Task> tasks = this.perceptionHandler.getTasks();
-        action = null;
-
-        //if there is a task available and the agent was not doing any other task -> let's do this task then
-        if(tasks.size() > 0 && activeTask == null){
-            activeTask = tasks.get(0);
-            activeRequirement = activeTask.getRequirements().entrySet().iterator().next();
-        }
-
-        //if the agent is doing a task and the current requirement is done -> check if there is any other requirement and do it! If not, the task is done!!!
-        if(activeTask != null && activeRequirement.getValue() == true){
-            activeRequirement = null;
-            for (Map.Entry<Block,Boolean> requirement : activeTask.getRequirements().entrySet())
-                if(requirement.getValue() == false){
-                    activeRequirement = requirement;
-                }
-
-            if(activeRequirement == null){
-                action = lookForGoal(); //action can be "move" if going for goal | "submit" if already in goal cell | "null" if doesn't know where is goal
-            }
-        }
-        
-        if(activePath.size() > 0 && !perceptionHandler.getFailed()){
-            action = moveTo(activePath.remove(0));
-        }
-        
-        //if we are doing a requirement and it's not done -> the aent should fulfill it
-        if((activePath.size() == 0 || perceptionHandler.getFailed()) && activeRequirement != null && activeRequirement.getValue() == false){
-            String blockType = activeRequirement.getKey().getType();
-            activePath = lookForDispenserV2(blockType); //action can be "move" if going for a dispenser | "request" if already near a dispenser | "attach" if we have requested a block from the dispenser || "null" if we haven't seen any dispenser yet
-            activePath.remove(0);
-            action = moveTo(activePath.remove(0));
-        }
-        
-        //if none of the previous conditions are met, it means no action has been chosen -> so explore
-        if(action == null){
-            action = explore();
-        }
-
-        if(action != null){
-            return action;
-        }
-
-        //this means there is nothing else to do
-        return new Action("skip");
-    }
-
-
-
-    //##################################### FUNCTIONS #####################################################
-    
-    
     private List<IntegerPair> lookForDispenserV2(String detail){
         Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
         if(dispensers.size() > 0){
@@ -270,43 +385,6 @@ public class BasicAgent extends Agent {
         return null;
     }
 
-    public Action lookForDispenser(String detail){
-        Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
-        if(dispensers.size() > 0 ){
-            
-            List<IntegerPair> path = getShortestPathByType(CellType.Dispenser, detail);
-            if(path.size()>2){
-                IntegerPair next_location = path.get(1);
-                return moveTo(next_location);
-            }
-            else if(path.size() == 2){
-                String direction = dispenserOnMySide(detail);
-                if(requested==false){
-                    requested = true;
-                    return new Action("request", new Identifier(direction));
-                }
-                else{
-                    requested = false;
-                    return new Action("attach", new Identifier(direction));
-                }
-            }
-        }
-        return explore();
-    }
-
-    /*public Action lookForBlock(String detail){
-        List<IntegerPair> blocks = this.mapHandler.getBlocksLocationslist();
-        if(blocks.size() > 0 ){
-            List<IntegerPair> path = getShortestPathByType(CellType.Block, detail);
-            if(path.size() > 2){
-                return moveTo(path.get(1));
-            }
-            else if(path.size() == 2){
-                blockOnMySide(detail)
-            }
-        }
-        return null;
-    }*/
 
     public boolean isGoal(){
         if(mapHandler.getMap()[mapHandler.getAgentLocation().getX()][mapHandler.getAgentLocation().getY()].getType().equals(CellType.Goal)){
@@ -326,35 +404,6 @@ public class BasicAgent extends Agent {
         }
 
         return explore();
-    }
-
-    public Action lookForRequirement(){
-        Map<Block, Boolean> reqs = perceptionHandler.getTasks().get(0).getRequirements();
-
-        List <IntegerPair> path = new LinkedList<>();
-        int shortestPathSize = 1000;
-
-        for (Map.Entry<Block,Boolean> req: reqs.entrySet()){
-            Block b = req.getKey();
-            List <IntegerPair> p = getShortestPathByLocation(new IntegerPair(b.getX(), b.getY()));
-            if(p.size() > 1 && p.size() < shortestPathSize){
-                path = p;
-            }
-        }
-
-        if(path.size() > 1){
-            IntegerPair nextLoc = path.get(0);
-            return moveTo(nextLoc);
-        }
-        return explore();
-    }
-
-    public boolean hasDoneTask(Map<Block, Boolean> requirementsTocheck){
-        for (Map.Entry<Block,Boolean> requirement : requirementsTocheck.entrySet())
-            if(requirement.getValue() == false){
-                return false;
-            }
-        return true;
     }
 
     public String coordinatesToDirection(IntegerPair coordinates){
@@ -470,83 +519,3 @@ public class BasicAgent extends Agent {
     }
 
 }
-
-
-//###############################################################################################
-
-/*
-public Action workThoseNeurons3(){
-        Action action = null;
-
-        //If there is a task -> Check it
-        if(this.perceptionHandler.getTasks().size() > 0){
-
-            //if in a goal area and task is done -> submit it
-            if(hasDoneTask()){
-                if(isGoal()){
-                    action = new Action("submit", new Identifier(this.perceptionHandler.getTasks().get(0).getName())); //!!!!!HANDLE WHAT TASK TO SUBMIT!!!!
-                }
-                else {
-                    action = lookForGoal();
-                }
-            }
-
-            //this means you couldn't submit it because you didn't finish your task
-            else {
-                action = blockOnMySide("");
-                if(action == null){
-                    //if there isn't any block next to me (1 cell away) -> look and move to the closest block
-                    action = lookForBlock("");
-
-                    if(action == null){
-
-                    }
-                }
-                action = lookForRequirement();
-            }
-
-
-
-
-
-
-
-            //if not in goal area, but has (a) block(s) attached and has completed the task -> go for the goal area to submit it
-            //if(hasBlockAttached && hasDoneTask()){
-            action = lookForGoal();
-
-            //else if has (a) block(s) attached, but hasn't finished the task (didn't fulfill all the requirements) -> go for the requirements location
-            //else if(hasBlockAttached){
-            action = lookForRequirement();
-
-            //if doesn't have a block attached or haven't finished task and there is a block next to the agent, if it is what he needs, get it
-            //if(!hasBlockAttached || !hasDoneTask()){
-            action = blockOnMySide("");
-
-            //if there isn't any block next to me (1 cell away) -> look and move to the closest block
-            action = lookForBlock(""); //!!!MISSING - GET DETAIL
-
-            //if there is no block of my interest in my map -> check dispenser next to me...
-            action = dispenserOnMySide("");
-
-            //if no dispenser is next to me (1 cell away) -> look and go for the closest...
-            action = lookForDispenser(""); //!!!MISSING - GET DETAIL
-
-            //if none of those conditions apply, just explore the place - explore means going for cells marked as unknowns
-            action = explore();
-        }
-
-        //if no task is available -> just explore
-        else{
-            action = explore();
-        }
-
-        //OK - NOW DO IT!
-        if(action != null){
-            return action;
-        }
-
-        return new Action("skip");
-    }
-
-*/

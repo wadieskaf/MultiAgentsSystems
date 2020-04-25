@@ -16,6 +16,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class MapHandler {
+    int length;
+    int width;
     private Cell[][] map;
     private IntegerPair agentLocation;
     private List<IntegerPair> blocksLocationslist;
@@ -23,22 +25,21 @@ public class MapHandler {
     private Map<IntegerPair, String> blocksTypeMap;
     private Map<IntegerPair, String> dispensersTypeMap;
     private List<IntegerPair> goalList;
-    private Map<String, IntegerPair> teammatesTransform;
+    private Map<String, IntegerPair> teammatesTransfers;
 
     public MapHandler() {
+        length=0;
+        width=0;
         blocksLocationslist = new ArrayList<IntegerPair>();
         dispensersLocationslist = new ArrayList<IntegerPair>();
         blocksTypeMap = new HashMap<>();
         dispensersTypeMap = new HashMap<>();
         goalList = new LinkedList<>();
+        teammatesTransfers = new HashMap<>();
     }
     
     public List<IntegerPair> getGoalList(){
         return goalList;
-    }
-    
-    public void transformTeammate(IntegerPair teammateLocation, IntegerPair internalTeammate, String name){
-        teammatesTransform.put(name, teammateLocation.subtract(internalTeammate));
     }
     
     public void printMapToFile(String path){
@@ -102,6 +103,8 @@ public class MapHandler {
     }
 
     public void initiateMap(int length, int width, IntegerPair agentMovement) {
+        this.length = length;
+        this.width = width;
         this.map = new Cell[length][width];
         for(var row : map){
             Arrays.fill(row, new OrdinaryCell(CellType.Unknown));
@@ -208,7 +211,29 @@ public class MapHandler {
 
     }
 
-    public IntegerPair getTransform(IntegerPair a, IntegerPair b){
-        return null;
+    public IntegerPair getTeammateTransfer(IntegerPair teammatePercept, IntegerPair teammateLocation, String name){
+        IntegerPair internalTeammateLocation = this.agentLocation.add(teammatePercept);
+        IntegerPair transformationVector = internalTeammateLocation.subtract(teammateLocation);
+        this.teammatesTransfers.put(name, transformationVector);
+        return transformationVector;
+    }
+
+    public Boolean checkTransformation(IntegerPair teammateLocation, IntegerPair transformationVector){
+        IntegerPair result = teammateLocation.add(transformationVector);
+        return result.check(this.length, this.width);
+    }
+
+    public void makeTransformation(String agentName, Cell item, IntegerPair location){
+        IntegerPair transform = teammatesTransfers.get(agentName);
+        if (checkTransformation(location, transform)){
+            IntegerPair newLocation = location.add(transform);
+            this.map[newLocation.getX()][newLocation.getY()] = item;
+            if (item.getType() == CellType.Dispenser){
+                dispensersTypeMap.put(newLocation, ((DetailedCell)item).getDetails());
+            }
+            if (item.getType() == CellType.Block){
+                blocksTypeMap.put(newLocation, ((DetailedCell)item).getDetails());
+            }
+        }
     }
 }

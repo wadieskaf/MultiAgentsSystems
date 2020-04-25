@@ -46,4 +46,8 @@ public class IntegerPair {
         return new IntegerPair(-1 * this.x, -1 * this.y);
     }
 
+    public Boolean check(int x, int y){
+        return this.x > 0 && this.x < x && this.y>0 && this.y <y;
+    }
+
 }

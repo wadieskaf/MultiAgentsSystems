@@ -87,18 +87,23 @@ public class BasicAgent extends Agent {
         //task
 
         //name
-        /*else if(message.getName().equals("Name")){
+        else if(message.getName().equals("Name")){
             List<Parameter> pars = message.getClonedParameters();
-            Map<String, IntegerPair> teamMateInfo;
-            IntegerPair teamMateOwnLoc;
-            String teamMateName;
+            //WADIE MAKE THIS
+            /*
+            * * A2
+             * handleMessage(sender)
+             *   if(message.title.equals(Name)
+             *       List<Parameters> -> x,yOFME in Him.... x,y of HIM
+             *       if(x,y == A2perceptionHandler.getTeammateX, Y )
+             *           Name = sender...
+             *           transform = mapHandler.getTeamMateTrans(x,YOFME in HIM, ...)
+             *           teamMateTransforms.put(name,transform)
+             *
+            * */
 
 
-
-            ((Numeral)pars.get(i)).getValue().intValue();
-
-
-        }*/
+        }
 
         //kex ot
         
@@ -128,21 +133,42 @@ public class BasicAgent extends Agent {
         return  act;
     }
 
+
+    /*
+    * A1
+    *
+    * perceptionHandler -> seen teamMates
+    *
+    * for each teamMate:
+    *   broadcast -> title : Name... , perceptionHandler.getTeamMate.x , y, mapHandler.MyX, MyY
+    *
+    * A2
+    * handleMessage(sender)
+    *   if(message.title.equals(Name)
+    *       List<Parameters> -> x,yOFME in Him.... x,y of HIM
+    *       if(x,y == A2perceptionHandler.getTeammateX, Y )
+    *           Name = sender...
+    *           transform = mapHandler.getTeamMateTrans(x,YOFME in HIM, ...)
+    *           teamMateTransforms.put(name,transform)
+    * */
+
+
     private Action chooseAction(){
 
         //CHECK WHERE TO FIT SELECTION PROCESS.... WHEN TO RESTART THE WEIGHTS.. PROBABLY WHEN HE IS DONE..
         //ALSO CHECK WHEN TASKS ARE HANDLED... HOW TO MARK THEM SO THAT AGENTS THAT DIDN'T RECEIVE ANYTHING DON'T INTERFEER....
 
         //If Agent sees a teammate -> share relative positions!
-        /*if(this.perceptionHandler.getTeammates().size() > 0){
+        if(this.perceptionHandler.getTeammates().size() > 0){
             Map<String, IntegerPair> myInfo = new HashMap<>();
             for(var teamMate : this.perceptionHandler.getTeammates()){
-                myInfo.put(getName(), new IntegerPair(teamMate.getX(), teamMate.getY()));
+                //WADIE CALL BROADCAST...
+                //broadcast(perceptionHandler.makePercept("Weights", w), getName());
             }
-            sendMyInfo(myInfo);
+
 
             shareRelativePositions();
-        }*/
+        }
 
         //treat how to receive this messages.....
         myTaskWeights = weightTasks();
@@ -234,15 +260,27 @@ public class BasicAgent extends Agent {
     }
 
     private void sendMyTaskWeights(Map<String, Integer> weights){
+        int [] w = new int[weights.values().toArray().length];
         say("ABOUT TO SEND weights " + Arrays.toString(weights.values().toArray()));
-        for(var key: weights.keySet()){
+        /*for(var key: weights.keySet()){
             broadcast(perceptionHandler.makePercept(key, weights.get(key)), getName());
+        }*/
+        List<String> taskNames = new ArrayList<>(weights.keySet());
+        Collections.sort(taskNames);
+
+        int i = 0;
+        for(String taskName : taskNames){
+            w[i] = weights.get(taskName);
+            i++;
         }
+
+        broadcast(perceptionHandler.makePercept("Weights", w), getName());
+
         say("SENT");
     }
 
-    private void sendMyInfo(Map<String, IntegerPair> myInfo){
-        broadcast(perceptionHandler.makePercept("Name", myInfo), getName());
+    private void sendMyInfo(Integer x, Integer y){
+
     }
 
     private Task chooseAvailableTask(){

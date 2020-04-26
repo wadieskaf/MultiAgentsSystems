@@ -25,6 +25,9 @@ import java.util.stream.IntStream;
  * MASSim server main class/entry point.
  * @author ta10
  */
+
+//java -jar target\server-2019-2.1-jar-with-dependencies.jar --monitor
+
 public class Server {
 
     private ServerConfig config;

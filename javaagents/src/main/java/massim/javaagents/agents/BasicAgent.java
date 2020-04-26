@@ -11,6 +11,9 @@ import massim.javaagents.utils.*;
 /**
  * A not very basic agent.
  */
+
+//java -jar target\javaagents-2019-1.0-jar-with-dependencies.jar
+
 public class BasicAgent extends Agent {
     private enum State{Exploring, MovingToDispenser, NearDispenser, NearBlock, MovingToGoal, AtGoal}
     
@@ -32,6 +35,7 @@ public class BasicAgent extends Agent {
     private boolean helpArrived = false;
     
     Map<String, int[]> weightsOfOthers;
+    private String name;
 
 
     /**
@@ -57,6 +61,7 @@ public class BasicAgent extends Agent {
         this.requirement = null;
         this.state = State.Exploring;
         this.weightsOfOthers = new HashMap<>();
+
     }
     
 
@@ -65,15 +70,36 @@ public class BasicAgent extends Agent {
 
     @Override
     public void handleMessage(Percept message, String sender) {
-        say("weight: " + ((Numeral)message.getParameters().get(0)).getValue().toString());
+        //say("weight: " + ((Numeral)message.getParameters().get(0)).getValue().toString());
         if(message.getName().equals("Weights")){
-            int[] weights = new int[this.perceptionHandler.getTasks().size()];
+            List<Parameter> pars = message.getClonedParameters();
+            //int[] weights = new int[this.perceptionHandler.getTasks().size()];
+            int[] weights = new int[pars.size()];
             for(int i = 0; i < weights.length; ++i){
-                List<Parameter> pars = message.getClonedParameters();
+                //List<Parameter> pars = message.getClonedParameters();
                 weights[i] = ((Numeral)pars.get(i)).getValue().intValue();
             }
+            say("Received " + Arrays.toString(weights) + " from " + sender);
             weightsOfOthers.put(sender, weights);
         }
+
+        //task
+
+        //name
+        /*else if(message.getName().equals("Name")){
+            List<Parameter> pars = message.getClonedParameters();
+            Map<String, IntegerPair> teamMateInfo;
+            IntegerPair teamMateOwnLoc;
+            String teamMateName;
+
+
+
+            ((Numeral)pars.get(i)).getValue().intValue();
+
+
+        }*/
+
+        //kex ot
         
     }
 
@@ -91,7 +117,7 @@ public class BasicAgent extends Agent {
         /*broadcast(perceptionHandler.makePercept("asd", "asdasd", 3, 5, Arrays.asList(1,2,3), percepts.get(0)), getName());
         broadcast(perceptionHandler.makePercept("asd", "dsadsa"), getName());
         broadcast(perceptionHandler.makePercept("foundSomeone", 4,0), getName());*/
-        
+
 
         //PHASE 3 (Deliberate) - Agent tries to figure out what is the best action to perform given his current state and his previous action
 		step++;
@@ -108,23 +134,13 @@ public class BasicAgent extends Agent {
 
         //If Agent sees a teammate -> share relative positions!
         /*if(this.perceptionHandler.getTeammates().size() > 0){
-            shareRelativePositions();
-        }
-
-        if(this.perceptionHandler.getMessages().size() > 0){
-            for(var message : this.perceptionHandler.getMessages()){
-                if(message.toString().equals("Weights")){
-
-                }
-                else if(message.toString().equals("Help")){
-                    activeTask = message.getDetails();
-                    requirement = activeTask.getRequirement();
-                    state = State.MovingToDispenser;
-                }
-                else if(message.toString().equals("Connect")){
-
-                }
+            Map<String, IntegerPair> myInfo = new HashMap<>();
+            for(var teamMate : this.perceptionHandler.getTeammates()){
+                myInfo.put(getName(), new IntegerPair(teamMate.getX(), teamMate.getY()));
             }
+            sendMyInfo(myInfo);
+
+            shareRelativePositions();
         }*/
 
         //treat how to receive this messages.....
@@ -173,9 +189,9 @@ public class BasicAgent extends Agent {
             String teamMateName = teamMate.toString();//MISSING METHOD TO GET NAME
             IntegerPair teamMateOwnLocation = askTeamMateLocation(teamMateName);
             IntegerPair teamMateLocationInMyInternalMap = new IntegerPair(teamMate.getX(),teamMate.getY());
-            IntegerPair teamMateTransform = this.mapHandler.getTransform(teamMateOwnLocation, teamMateLocationInMyInternalMap);
+            //IntegerPair teamMateTransform = this.mapHandler.getTransform(teamMateOwnLocation, teamMateLocationInMyInternalMap);
 
-            teamMatesTrans.put(teamMateName, teamMateTransform);
+            //teamMatesTrans.put(teamMateName, teamMateTransform);
         }
     }
 
@@ -207,44 +223,36 @@ public class BasicAgent extends Agent {
     }
 
     private void sendMyTaskWeights(int [] weights){
-        this.myTaskWeights = weights;
-        //send from Adam....
+        say("ABOUT TO SEND weights " + Arrays.toString(weights));
         broadcast(perceptionHandler.makePercept("Weights", weights), getName());
+        say("SENT");
     }
 
-    //this will return the tasksweights of all the other agents...
-    private List<int []> getTaskInfoFromOthers(){
-        //then get from others..Adam...
-        return null;
+    private void sendMyInfo(Map<String, IntegerPair> myInfo){
+        broadcast(perceptionHandler.makePercept("Name", myInfo), getName());
     }
 
     private Task chooseAvailableTask(){
         //Weight my tasks
         this.myTaskWeights = weightTasks();
-
-        /*System.out.println("");
-        System.out.println("!!!!!!!!!!!!!!!!!!!!!");
-        System.out.print("Tasks Weights: ");
-        for(int i=0; i<this.perceptionHandler.getTasks().size(); i++){
-            System.out.print(this.myTaskWeights[i] + ", ");
-        }
-        System.out.println("");
-        System.out.println("!!!!!!!!!!!!!!!!!!!!");*/
-
-
+        say("My weights are: " + Arrays.toString(this.myTaskWeights));
 
         //send my weights to others
         sendMyTaskWeights(this.myTaskWeights);
 
+        say("OUTSIDE");
         //receive the weights from others
         if(this.weightsOfOthers.size() > 0){
+            say("INSIDE because weights of others has size:" + this.weightsOfOthers.get(0).length);
+
             //now compare and check who does what
-            int size = this.perceptionHandler.getTasks().size();
+            //int size = this.perceptionHandler.getTasks().size();
+            int size = this.weightsOfOthers.get(0).length; //NOT SOLVED!!!!!
             int [] doWhatTask = new int[size];
             
-            say("task size: " + size);
+            //say("task size: " + size);
             for(var taskOther : weightsOfOthers.values()){ //iterate over the taskWeights of other Agents...
-                say("other size: " + taskOther.length);
+                //say("other size: " + taskOther.length);
                 for(int i=0; i<size; i++){//taskWeights is an array [3,5,6]
                     if(this.myTaskWeights[i] < 0){ //if my weight is -1
                         doWhatTask[i] = 0;
@@ -278,8 +286,13 @@ public class BasicAgent extends Agent {
                 Task t = this.perceptionHandler.getTasks().remove(minIndex);
                 //make it activeTask
                 //send message... "OK I am doing this"
-                say(((Integer)minIndex).toString());
+                //say(((Integer)minIndex).toString());
+                say("I will do Task " + minIndex);
+                //SEND MESSAGE REMOVETASK...
                 return t;
+            }
+            else{
+                say("I will NOT do any Task ");
             }
         }
 

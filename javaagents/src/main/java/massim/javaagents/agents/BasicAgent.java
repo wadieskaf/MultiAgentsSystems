@@ -145,6 +145,17 @@ public class BasicAgent extends Agent {
         }*/
 
         //treat how to receive this messages.....
+        myTaskWeights = weightTasks();
+        for(var task : myTaskWeights.keySet()){
+            Whiteboard.putWeigth(getName(), task, myTaskWeights.get(task));
+        }
+        //String myTask = Whiteboard.getTaskAssigned(getName());
+        say(myTaskWeights.toString());
+        say(Whiteboard.getAllAssigned().toString());
+        /*if(myTask != null) say("My task: " + myTask);
+        else say("No task.");*/
+        if(true) return explore();
+        
         switch(state){
             case Exploring:
                 return doExplore();
@@ -236,7 +247,7 @@ public class BasicAgent extends Agent {
 
     private Task chooseAvailableTask(){
         //Weight my tasks
-        this.myTaskWeights = weightTasks();
+        /*this.myTaskWeights = weightTasks();
         say("My weights are: " + Arrays.toString(this.myTaskWeights.values().toArray()));
 
         //send my weights to others
@@ -297,7 +308,7 @@ public class BasicAgent extends Agent {
             else{
                 say("I will NOT do any Task ");
             }
-        }
+        }*/
 
         
 

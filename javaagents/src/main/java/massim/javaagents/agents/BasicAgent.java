@@ -30,7 +30,7 @@ public class BasicAgent extends Agent {
     private int step;
     private Block requirement;
     private State state;
-    private int [] myTaskWeights;
+    private Map<String, Integer> myTaskWeights;
     private Map<String, IntegerPair> teamMatesTrans;
     private boolean helpArrived = false;
     
@@ -61,6 +61,7 @@ public class BasicAgent extends Agent {
         this.requirement = null;
         this.state = State.Exploring;
         this.weightsOfOthers = new HashMap<>();
+        myTaskWeights = new HashMap<>();
 
     }
     
@@ -199,32 +200,33 @@ public class BasicAgent extends Agent {
         return null;//ADAM!!!
     }
 
-    private int[] weightTasks(){
+    private Map<String, Integer> weightTasks(){
         //check if I have seen all the types of blocks/dispensers specified in the requirements
         List<Task> tasks = this.perceptionHandler.getTasks();
-        int [] taskWeights = new int[tasks.size()];
-        for(int i=0; i<tasks.size(); i++){
-            taskWeights[i] = -1;
+        Map<String, Integer> taskWeights = new HashMap<>(); 
+        //int [] taskWeights = new int[tasks.size()];
+        for(var task : tasks){
+            taskWeights.put(task.getName(), -1);
         }
 
-        int i = 0;
         for(Task task : tasks){
             for (Map.Entry<Block,Boolean> requirement : task.getRequirements().entrySet()){
                 String detail = requirement.getKey().getType();
                 Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
                 if(!dispensers.isEmpty()){
                     List<IntegerPair> p = lookForDispenserV2(detail);
-                    taskWeights[i] += p.size();
+                    taskWeights.replace(task.getName(), taskWeights.get(task.getName()) + p.size());
                 }
-            }
-            i++;
+            }    
         }
         return taskWeights;
     }
 
-    private void sendMyTaskWeights(int [] weights){
-        say("ABOUT TO SEND weights " + Arrays.toString(weights));
-        broadcast(perceptionHandler.makePercept("Weights", weights), getName());
+    private void sendMyTaskWeights(Map<String, Integer> weights){
+        say("ABOUT TO SEND weights " + Arrays.toString(weights.values().toArray()));
+        for(var key: weights.keySet()){
+            broadcast(perceptionHandler.makePercept(key, weights.get(key)), getName());
+        }
         say("SENT");
     }
 
@@ -235,7 +237,7 @@ public class BasicAgent extends Agent {
     private Task chooseAvailableTask(){
         //Weight my tasks
         this.myTaskWeights = weightTasks();
-        say("My weights are: " + Arrays.toString(this.myTaskWeights));
+        say("My weights are: " + Arrays.toString(this.myTaskWeights.values().toArray()));
 
         //send my weights to others
         sendMyTaskWeights(this.myTaskWeights);
@@ -243,11 +245,12 @@ public class BasicAgent extends Agent {
         say("OUTSIDE");
         //receive the weights from others
         if(this.weightsOfOthers.size() > 0){
-            say("INSIDE because weights of others has size:" + this.weightsOfOthers.get(0).length);
+            int size = this.weightsOfOthers.entrySet().iterator().next().getValue().length;
+            say("INSIDE because weights of others has size:" + size);
 
             //now compare and check who does what
             //int size = this.perceptionHandler.getTasks().size();
-            int size = this.weightsOfOthers.get(0).length; //NOT SOLVED!!!!!
+            //int size = this.weightsOfOthers.get(0).length; //NOT SOLVED!!!!!
             int [] doWhatTask = new int[size];
             
             //say("task size: " + size);

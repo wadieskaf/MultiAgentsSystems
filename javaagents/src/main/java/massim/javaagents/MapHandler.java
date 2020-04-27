@@ -214,7 +214,6 @@ public class MapHandler {
     public IntegerPair getTeammateTransfer(IntegerPair teammatePercept, IntegerPair teammateLocation, String name){
         IntegerPair internalTeammateLocation = this.agentLocation.add(teammatePercept);
         IntegerPair transformationVector = internalTeammateLocation.subtract(teammateLocation);
-        this.teammatesTransfers.put(name, transformationVector);
         return transformationVector;
     }
 

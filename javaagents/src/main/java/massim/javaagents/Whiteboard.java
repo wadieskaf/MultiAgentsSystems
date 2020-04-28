@@ -1,10 +1,6 @@
 package massim.javaagents;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 
 public class Whiteboard {
@@ -17,7 +13,7 @@ public class Whiteboard {
 	
 	public static synchronized void putWeigth(String agent, String task, Integer value){
 		Map<String, Integer> taskMap = tasksWeights.get(agent);
-		if(!assignedTasks.containsKey(task)) assignedTasks.put(task, null);
+		//if(!assignedTasks.containsKey(task)) assignedTasks.put(task, null);
 		if(taskMap == null){
 			Map<String, Integer> newMap = new HashMap<>();
 			newMap.put(task, value);
@@ -28,8 +24,72 @@ public class Whiteboard {
 			tasksWeights.put(agent, taskMap);
 		}
 	}
+
+	public static synchronized String assignTask(String agent){
+		List<String> tasksReceived = new LinkedList<>();
+		for(var otherAgent : tasksWeights.keySet()){
+			if(!agent.equals(otherAgent)){
+				Map<String, Integer> agentTasksW = tasksWeights.get(agent);
+				Map<String, Integer> otherAgentTasksW = tasksWeights.get(otherAgent);
+				for(String task : agentTasksW.keySet()){
+					if(assignedTasks.size() > 0 && assignedTasks.get(task) != null){
+						continue;
+					}
+					else if(agentTasksW.get(task) < 0){
+						continue;
+					}
+					else if(otherAgentTasksW.get(task) == null){
+						if(tasksReceived.contains(task))
+							continue;
+						else
+							tasksReceived.add(task);
+					}
+					else if(agentTasksW.get(task) >= 0 && otherAgentTasksW.get(task) < 0){
+						if(tasksReceived.contains(task))
+							continue;
+						else
+							tasksReceived.add(task);
+					}
+					else if(agentTasksW.get(task) < otherAgentTasksW.get(task)){
+						if(tasksReceived.contains(task))
+							continue;
+						else
+							tasksReceived.add(task);
+					}
+					else{ //the other guy has better weight
+						if(tasksReceived.contains(task))
+							tasksReceived.remove(task);
+						else
+							continue;
+					}
+				}
+			}
+		}
+
+		String task = "";
+		int min = -1;
+
+		for(String taskReceived : tasksReceived){
+			if(min == -1){
+				min = tasksWeights.get(agent).get(taskReceived);
+				task = taskReceived;
+			}
+			else if(tasksWeights.get(agent).get(taskReceived) < min){
+				min = tasksWeights.get(agent).get(taskReceived);
+				task = taskReceived;
+			}
+			else{
+				continue;
+			}
+		}
+
+		if(!task.equals(""))
+			assignedTasks.put(task, agent);
+
+		return task;
+	}
 	
-	public static synchronized void assignTasks(){
+	/*public static synchronized void assignTasks(){
 		for(var agent : tasksWeights.keySet()){
 			
 			if(assignedTasks.containsValue(agent))
@@ -46,7 +106,7 @@ public class Whiteboard {
 			if(minTask != null)assignedTasks.put(minTask, agent);
 		}
 		//Double min = Collections.min(map.values())
-	} 
+	}*/
 
 	public static synchronized Map<String, Map<String, Integer>> get(){
 		return tasksWeights;
@@ -57,5 +117,19 @@ public class Whiteboard {
 	}
 	public static synchronized Map<String, String> getAllAssigned(){
 		return assignedTasks;
+	}
+
+	public static synchronized Map<String, Integer> getMyWeightsOnBoard(String agent){
+		return tasksWeights.get(agent);
+	}
+
+	public static synchronized List<Map<String, Integer>> getOthersWeightsOnBoard(String agent){
+		List<Map<String, Integer>> othersW = new LinkedList<>();
+		for(String other : tasksWeights.keySet()){
+			if(!agent.equals(other)){
+				othersW.add(tasksWeights.get(other));
+			}
+		}
+		return othersW;
 	}
 }

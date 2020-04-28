@@ -29,13 +29,15 @@ public class BasicAgent extends Agent {
     private List<IntegerPair> activePath;
     private int step;
     private Block requirement;
+    private Map<Block, Boolean> requirements;
     private State state;
     private Map<String, Integer> myTaskWeights;
     private Map<String, IntegerPair> teamMatesTrans;
     private boolean helpArrived = false;
     
     Map<String, int[]> weightsOfOthers;
-    private String name;
+    private String taskAssigned;
+
 
 
     /**
@@ -62,7 +64,7 @@ public class BasicAgent extends Agent {
         this.state = State.Exploring;
         this.weightsOfOthers = new HashMap<>();
         myTaskWeights = new HashMap<>();
-
+        this.taskAssigned = "";
     }
     
 
@@ -84,8 +86,6 @@ public class BasicAgent extends Agent {
             weightsOfOthers.put(sender, weights);
         }
 
-        //task
-
         //name
         else if(message.getName().equals("Name")){
             List<Parameter> pars = message.getClonedParameters();
@@ -105,7 +105,6 @@ public class BasicAgent extends Agent {
 
         }
 
-        //kex ot
         
     }
 
@@ -118,12 +117,6 @@ public class BasicAgent extends Agent {
 
         //PHASE 2 (Internal State) - Agent updates its internal state
         this.mapHandler.updateMap(perceptionHandler);//needs to check if lastAction was successful before updating...
-        //String mapPath = "maps\\" + step + ".txt";
-        //mapHandler.printMapToFile(mapPath);
-        /*broadcast(perceptionHandler.makePercept("asd", "asdasd", 3, 5, Arrays.asList(1,2,3), percepts.get(0)), getName());
-        broadcast(perceptionHandler.makePercept("asd", "dsadsa"), getName());
-        broadcast(perceptionHandler.makePercept("foundSomeone", 4,0), getName());*/
-
 
         //PHASE 3 (Deliberate) - Agent tries to figure out what is the best action to perform given his current state and his previous action
 		step++;
@@ -134,54 +127,35 @@ public class BasicAgent extends Agent {
     }
 
 
-    /*
-    * A1
-    *
-    * perceptionHandler -> seen teamMates
-    *
-    * for each teamMate:
-    *   broadcast -> title : Name... , perceptionHandler.getTeamMate.x , y, mapHandler.MyX, MyY
-    *
-    * A2
-    * handleMessage(sender)
-    *   if(message.title.equals(Name)
-    *       List<Parameters> -> x,yOFME in Him.... x,y of HIM
-    *       if(x,y == A2perceptionHandler.getTeammateX, Y )
-    *           Name = sender...
-    *           transform = mapHandler.getTeamMateTrans(x,YOFME in HIM, ...)
-    *           teamMateTransforms.put(name,transform)
-    * */
-
-
     private Action chooseAction(){
 
-        //CHECK WHERE TO FIT SELECTION PROCESS.... WHEN TO RESTART THE WEIGHTS.. PROBABLY WHEN HE IS DONE..
-        //ALSO CHECK WHEN TASKS ARE HANDLED... HOW TO MARK THEM SO THAT AGENTS THAT DIDN'T RECEIVE ANYTHING DON'T INTERFEER....
-
         //If Agent sees a teammate -> share relative positions!
-        if(this.perceptionHandler.getTeammates().size() > 0){
+        /*if(this.perceptionHandler.getTeammates().size() > 0){
             Map<String, IntegerPair> myInfo = new HashMap<>();
             for(var teamMate : this.perceptionHandler.getTeammates()){
                 //WADIE CALL BROADCAST...
                 //broadcast(perceptionHandler.makePercept("Weights", w), getName());
             }
 
-
             shareRelativePositions();
-        }
+        }*/
 
-        //treat how to receive this messages.....
-        myTaskWeights = weightTasks();
+        /*myTaskWeights = weightTasks();
         for(var task : myTaskWeights.keySet()){
             Whiteboard.putWeigth(getName(), task, myTaskWeights.get(task));
         }
-        //String myTask = Whiteboard.getTaskAssigned(getName());
-        say(myTaskWeights.toString());
-        say(Whiteboard.getAllAssigned().toString());
-        /*if(myTask != null) say("My task: " + myTask);
-        else say("No task.");*/
+
+        say("My weights: " + myTaskWeights.toString());
+
+        if(taskAssigned.equals("")){
+            taskAssigned = Whiteboard.assignTask(getName());
+        }
+
+        say("All assigned Tasks: " + Whiteboard.getAllAssigned().toString());
+
         if(true) return explore();
-        
+        */
+
         switch(state){
             case Exploring:
                 return doExplore();
@@ -195,7 +169,7 @@ public class BasicAgent extends Agent {
                 return moveToGoal();
             case AtGoal:
                 //HELP ON THE WAY...
-                if(helpArrived){//if teamMate has arrived, now connect blocks
+                /*if(helpArrived){//if teamMate has arrived, now connect blocks
                     connectBLocks();//part of the submit should move here...the part of rotating..
                     return submit();
                 }
@@ -206,7 +180,8 @@ public class BasicAgent extends Agent {
                     //skip Action..wait until someone see's u :P
                     //maybe if task size 1...
                     //return submit();
-                }
+                }*/
+                return new Action("skip");
         }
         
         return new Action("skip");
@@ -259,96 +234,24 @@ public class BasicAgent extends Agent {
         return taskWeights;
     }
 
-    private void sendMyTaskWeights(Map<String, Integer> weights){
-        int [] w = new int[weights.values().toArray().length];
-        say("ABOUT TO SEND weights " + Arrays.toString(weights.values().toArray()));
-        /*for(var key: weights.keySet()){
-            broadcast(perceptionHandler.makePercept(key, weights.get(key)), getName());
-        }*/
-        List<String> taskNames = new ArrayList<>(weights.keySet());
-        Collections.sort(taskNames);
-
-        int i = 0;
-        for(String taskName : taskNames){
-            w[i] = weights.get(taskName);
-            i++;
-        }
-
-        broadcast(perceptionHandler.makePercept("Weights", w), getName());
-
-        say("SENT");
-    }
-
-    private void sendMyInfo(Integer x, Integer y){
-
-    }
 
     private Task chooseAvailableTask(){
-        //Weight my tasks
-        /*this.myTaskWeights = weightTasks();
-        say("My weights are: " + Arrays.toString(this.myTaskWeights.values().toArray()));
+        myTaskWeights = weightTasks();
+        for(var task : myTaskWeights.keySet()){
+            Whiteboard.putWeigth(getName(), task, myTaskWeights.get(task));
+        }
 
-        //send my weights to others
-        sendMyTaskWeights(this.myTaskWeights);
+        //say("My weights: " + myTaskWeights.toString());
 
-        say("OUTSIDE");
-        //receive the weights from others
-        if(this.weightsOfOthers.size() > 0){
-            int size = this.weightsOfOthers.entrySet().iterator().next().getValue().length;
-            say("INSIDE because weights of others has size:" + size);
+        //if(taskAssigned.equals(""))
+        taskAssigned = Whiteboard.assignTask(getName());
 
-            //now compare and check who does what
-            //int size = this.perceptionHandler.getTasks().size();
-            //int size = this.weightsOfOthers.get(0).length; //NOT SOLVED!!!!!
-            int [] doWhatTask = new int[size];
-            
-            //say("task size: " + size);
-            for(var taskOther : weightsOfOthers.values()){ //iterate over the taskWeights of other Agents...
-                //say("other size: " + taskOther.length);
-                for(int i=0; i<size; i++){//taskWeights is an array [3,5,6]
-                    if(this.myTaskWeights[i] < 0){ //if my weight is -1
-                        doWhatTask[i] = 0;
-                    }
-                    else if(this.myTaskWeights[i] >= 0 && taskOther[i] < 0){
-                        doWhatTask[i] = 1;
-                    }
-                    else if(this.myTaskWeights[i] < taskOther[i]){
-                        doWhatTask[i] = 1;
-                    }
-                    else{
-                        doWhatTask[i] = 0;
-                    }
-                }
-            }
-            //if more than one... pick the minimum and inform....broadcast..ok, I am doing this...
+        //say("All assigned Tasks: " + Whiteboard.getAllAssigned().toString());
 
-            int minIndex = -1;
-            int minScore = 1000;
-
-            for (int i=0; i<size; i++){
-                if(doWhatTask[i] == 1){
-                    if(this.myTaskWeights[i] >= 0 && this.myTaskWeights[i] < minScore){
-                        minIndex = i;
-                    }
-                }
-            }
-
-            //If there is a task for him -> Go for it
-            if(minIndex != -1){
-                Task t = this.perceptionHandler.getTasks().remove(minIndex);
-                //make it activeTask
-                //send message... "OK I am doing this"
-                //say(((Integer)minIndex).toString());
-                say("I will do Task " + minIndex);
-                //SEND MESSAGE REMOVETASK...
-                return t;
-            }
-            else{
-                say("I will NOT do any Task ");
-            }
-        }*/
-
-        
+        for(var task : perceptionHandler.getTasks()){
+            if(taskAssigned.equals(task.getName()))
+                return task;
+        }
 
         return null;
     }
@@ -356,16 +259,30 @@ public class BasicAgent extends Agent {
     private Action doExplore(){
         List<Task> tasks = this.perceptionHandler.getTasks();
         if(!tasks.isEmpty()){ //!!ATTENTION!! BECAUSE WE ARE REMOVING THE TASK ONCE ITS ASSIGNED... IS THERE A POSSIBILITY TO COME HERE....
-			activeTask = chooseAvailableTask();
 			if(activeTask == null){
-			    return explore();
-			}
-            state = State.MovingToDispenser;
-			requirement = activeTask.getRequirement();
-            String detail = requirement.getType();
+                activeTask = chooseAvailableTask();
+                if(activeTask == null){
+                    return explore();
+                }
+            }
+
+
+			//requirement = activeTask.getRequirement();
+            requirements = activeTask.getRequirements();
+            for(Map.Entry<Block,Boolean> req : requirements.entrySet()){
+                String detail = req.getKey().getType();
+                Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
+                if(!dispensers.isEmpty()){
+                    state = State.MovingToDispenser;
+                    requirement = req.getKey();
+                    return moveToDispenser(detail);
+                }
+            }
+
+            //String detail = requirement.getType();
             //MAYBE REMOVE THIS!!!!
-            Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
-            if(!dispensers.isEmpty()) return moveToDispenser(detail);
+            //Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
+            //if(!dispensers.isEmpty()) return moveToDispenser(detail);
             //SO THE STATE HAS CHANGED BUT IF DISPENSERS IS EMPTY??? THE STATE NEEDS TO GO BACK TO NORMAL
         }
         return explore();

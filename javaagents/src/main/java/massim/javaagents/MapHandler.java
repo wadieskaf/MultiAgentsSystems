@@ -27,49 +27,49 @@ public class MapHandler {
     private List<IntegerPair> goalList;
 
     public MapHandler() {
-        length=0;
-        width=0;
+        length = 0;
+        width = 0;
         blocksLocationslist = new ArrayList<IntegerPair>();
         dispensersLocationslist = new ArrayList<IntegerPair>();
         blocksTypeMap = new HashMap<>();
         dispensersTypeMap = new HashMap<>();
         goalList = new LinkedList<>();
     }
-    
-    public List<IntegerPair> getGoalList(){
+
+    public List<IntegerPair> getGoalList() {
         return goalList;
     }
-    
-    public void printMapToFile(String path){
+
+    public void printMapToFile(String path) {
         try {
             File myObj = new File(path);
             myObj.createNewFile();
             FileWriter myWriter = new FileWriter(myObj);
-            for(var row : map){
-                for(var cell : row){
-                    if(cell.getType().equals(CellType.Unknown)) myWriter.write("x");
-                    else if(cell.getType().equals(CellType.Dispenser)) myWriter.write("!");
-                    else if(cell.getType().equals(CellType.Teammate)) myWriter.write("1");
-                    else if(cell.getType().equals(CellType.Obstacle)) myWriter.write("2");
+            for (var row : map) {
+                for (var cell : row) {
+                    if (cell.getType().equals(CellType.Unknown)) myWriter.write("x");
+                    else if (cell.getType().equals(CellType.Dispenser)) myWriter.write("!");
+                    else if (cell.getType().equals(CellType.Teammate)) myWriter.write("1");
+                    else if (cell.getType().equals(CellType.Obstacle)) myWriter.write("2");
                     else myWriter.write("0");
                 }
                 myWriter.write("\n");
             }
             myWriter.close();
-          } catch (IOException e) {
+        } catch (IOException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();
-          }
+        }
     }
-    
-    public Map<IntegerPair,String> getDispensersByType(String type){
+
+    public Map<IntegerPair, String> getDispensersByType(String type) {
         return dispensersTypeMap.entrySet().stream().filter(p -> p.getValue().equals(type)).collect(Collectors.toMap(map -> map.getKey(), map -> map.getValue()));
     }
-    
-    public Map<IntegerPair,String> getBlocksByType(String type){
+
+    public Map<IntegerPair, String> getBlocksByType(String type) {
         return blocksTypeMap.entrySet().stream().filter(p -> p.getValue().equals(type)).collect(Collectors.toMap(map -> map.getKey(), map -> map.getValue()));
     }
-    
+
     public IntegerPair getAgentLocation() {
         return agentLocation;
     }
@@ -86,7 +86,7 @@ public class MapHandler {
         return dispensersLocationslist;
     }
 
-    public Cell getCell(IntegerPair location){
+    public Cell getCell(IntegerPair location) {
 //        System.out.println("Location x= " + location.getX());
 //        System.out.println("Location y= " + location.getY());
         return this.map[location.getX()][location.getY()];
@@ -104,7 +104,7 @@ public class MapHandler {
         this.length = length;
         this.width = width;
         this.map = new Cell[length][width];
-        for(var row : map){
+        for (var row : map) {
             Arrays.fill(row, new OrdinaryCell(CellType.Unknown));
         }
         this.agentLocation = agentMovement;
@@ -145,8 +145,8 @@ public class MapHandler {
             int agent_y = this.agentLocation.getY();
             int x = item.getX() + agent_x;
             int y = item.getY() + agent_y;
-            if(itemCellType == CellType.Goal){
-                goalList.add(new IntegerPair(x,y));
+            if (itemCellType == CellType.Goal) {
+                goalList.add(new IntegerPair(x, y));
             }
             this.map[x][y] = new OrdinaryCell(itemCellType);
 
@@ -174,10 +174,10 @@ public class MapHandler {
             switch (itemsType) {
                 case "Blocks":
                     blocksLocationslist.add(new IntegerPair(x, y));
-                    blocksTypeMap.put(new IntegerPair(x,y), item.getType());
+                    blocksTypeMap.put(new IntegerPair(x, y), item.getType());
                 case "Dispensers":
                     dispensersLocationslist.add(new IntegerPair(x, y));
-                    dispensersTypeMap.put(new IntegerPair(x,y), item.getType());
+                    dispensersTypeMap.put(new IntegerPair(x, y), item.getType());
             }
         }
     }
@@ -209,26 +209,26 @@ public class MapHandler {
 
     }
 
-    public IntegerPair getTeammateTransfer(IntegerPair teammatePercept, IntegerPair teammateLocation, String name){
+    public IntegerPair getTeammateTransfer(IntegerPair teammatePercept, IntegerPair teammateLocation, String name) {
         IntegerPair internalTeammateLocation = this.agentLocation.add(teammatePercept);
         IntegerPair transformationVector = internalTeammateLocation.subtract(teammateLocation);
         return transformationVector;
     }
 
-    public Boolean checkTransformation(IntegerPair teammateLocation, IntegerPair transformationVector){
+    public Boolean checkTransformation(IntegerPair teammateLocation, IntegerPair transformationVector) {
         IntegerPair result = teammateLocation.add(transformationVector);
         return result.check(this.length, this.width);
     }
 
-    public void makeTransformation(IntegerPair transform, Cell item, IntegerPair location){
-        if (checkTransformation(location, transform)){
+    public void makeTransformation(IntegerPair transform, Cell item, IntegerPair location) {
+        if (checkTransformation(location, transform)) {
             IntegerPair newLocation = location.add(transform);
             this.map[newLocation.getX()][newLocation.getY()] = item;
-            if (item.getType() == CellType.Dispenser){
-                dispensersTypeMap.put(newLocation, ((DetailedCell)item).getDetails());
+            if (item.getType() == CellType.Dispenser) {
+                dispensersTypeMap.put(newLocation, ((DetailedCell) item).getDetails());
             }
-            if (item.getType() == CellType.Block){
-                blocksTypeMap.put(newLocation, ((DetailedCell)item).getDetails());
+            if (item.getType() == CellType.Block) {
+                blocksTypeMap.put(newLocation, ((DetailedCell) item).getDetails());
             }
         }
     }

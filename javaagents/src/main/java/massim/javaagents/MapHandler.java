@@ -25,7 +25,6 @@ public class MapHandler {
     private Map<IntegerPair, String> blocksTypeMap;
     private Map<IntegerPair, String> dispensersTypeMap;
     private List<IntegerPair> goalList;
-    private Map<String, IntegerPair> teammatesTransfers;
 
     public MapHandler() {
         length=0;
@@ -35,7 +34,6 @@ public class MapHandler {
         blocksTypeMap = new HashMap<>();
         dispensersTypeMap = new HashMap<>();
         goalList = new LinkedList<>();
-        teammatesTransfers = new HashMap<>();
     }
     
     public List<IntegerPair> getGoalList(){
@@ -222,8 +220,7 @@ public class MapHandler {
         return result.check(this.length, this.width);
     }
 
-    public void makeTransformation(String agentName, Cell item, IntegerPair location){
-        IntegerPair transform = teammatesTransfers.get(agentName);
+    public void makeTransformation(IntegerPair transform, Cell item, IntegerPair location){
         if (checkTransformation(location, transform)){
             IntegerPair newLocation = location.add(transform);
             this.map[newLocation.getX()][newLocation.getY()] = item;

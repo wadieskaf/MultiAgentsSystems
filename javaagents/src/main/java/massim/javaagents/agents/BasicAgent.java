@@ -89,7 +89,7 @@ public class BasicAgent extends Agent {
         //task
 
         //name
-        else if (message.getName().equals("Name")) {
+        else if (message.getName().equals("Locations")) {
             List<Parameter> pars = message.getClonedParameters();
             //WADIE MAKE THIS
             IntegerPair teammateLocation = new IntegerPair(((Numeral) pars.get(2)).getValue().intValue(),
@@ -102,6 +102,7 @@ public class BasicAgent extends Agent {
                     IntegerPair transform = this.mapHandler.getTeammateTransfer(teammateRelativeLocation,
                             teammateLocation, sender);
                     this.teamMatesTrans.put(sender, transform);
+                    break;
                 }
             }
             /*

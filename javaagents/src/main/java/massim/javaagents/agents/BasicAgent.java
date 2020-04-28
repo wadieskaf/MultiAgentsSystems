@@ -34,6 +34,7 @@ public class BasicAgent extends Agent {
     private Map<String, Integer> myTaskWeights;
     private Map<String, IntegerPair> teamMatesTrans;
     private boolean helpArrived = false;
+    private boolean alreadySkipped;
 
     Map<String, int[]> weightsOfOthers;
     private String taskAssigned;
@@ -65,6 +66,8 @@ public class BasicAgent extends Agent {
         this.weightsOfOthers = new HashMap<>();
         myTaskWeights = new HashMap<>();
         this.taskAssigned = "";
+        this.teamMatesTrans = new HashMap<>();
+        alreadySkipped = false;
     }
 
 
@@ -96,13 +99,15 @@ public class BasicAgent extends Agent {
                     ((Numeral) pars.get(3)).getValue().intValue());
             IntegerPair possibleRelativeLocation = new IntegerPair(-1 * ((Numeral) pars.get(0)).getValue().intValue(),
                     -1 * ((Numeral) pars.get(1)).getValue().intValue());
-            for(var teammate: this.perceptionHandler.getTeammates()){
-                IntegerPair teammateRelativeLocation = new IntegerPair(teammate.getX(), teammate.getY());
-                if (possibleRelativeLocation.equals(teammateRelativeLocation)){
-                    IntegerPair transform = this.mapHandler.getTeammateTransfer(teammateRelativeLocation,
-                            teammateLocation, sender);
-                    this.teamMatesTrans.put(sender, transform);
-                    break;
+            if(perceptionHandler != null){
+                for(var teammate: this.perceptionHandler.getTeammates()){
+                    IntegerPair teammateRelativeLocation = new IntegerPair(teammate.getX(), teammate.getY());
+                    if (possibleRelativeLocation.equals(teammateRelativeLocation)){
+                        IntegerPair transform = this.mapHandler.getTeammateTransfer(teammateRelativeLocation,
+                                teammateLocation, sender);
+                        if(!teamMatesTrans.containsKey(sender)) this.teamMatesTrans.put(sender, transform);
+                        break;
+                    }
                 }
             }
             /*
@@ -121,7 +126,9 @@ public class BasicAgent extends Agent {
         }
 
         else if(message.getName().equals("Help")){
-
+            //requirement = 
+            //TODO get requirement from percept, also check if we have that requirement in our map, otherwise ignore
+            //send back "I'm helping" or I don't know...
         }
 
         //kex ot
@@ -130,13 +137,30 @@ public class BasicAgent extends Agent {
 
     @Override
     public Action step() {
-
+        //if(getName().equals("agentA1"))say(Whiteboard.getAllAssigned().toString());
+        say("teammates: " + teamMatesTrans.toString());
         //PHASE 1 (Sense) - Agent gets perceptions from Environment
         List<Percept> percepts = getPercepts();
         this.perceptionHandler = new PerceptionHandler(percepts);
 
         //PHASE 2 (Internal State) - Agent updates its internal state
         this.mapHandler.updateMap(perceptionHandler);//needs to check if lastAction was successful before updating...
+        
+        //If Agent sees a teammate -> share relative positions!
+        if (this.perceptionHandler.getTeammates().size() > 0) {
+            Map<String, IntegerPair> myInfo = new HashMap<>();
+            for (var teamMate : this.perceptionHandler.getTeammates()) {
+                broadcast(perceptionHandler.makePercept("Locations",
+                        teamMate.getX(), teamMate.getY(), this.mapHandler.getAgentLocation().getX(),
+                        this.perceptionHandler.getAgentMovement().getY()),
+                        getName());
+            }
+            if(!alreadySkipped){
+                alreadySkipped = true;
+                return new Action("skip");
+            }
+            alreadySkipped = false;
+        }
 
         //PHASE 3 (Deliberate) - Agent tries to figure out what is the best action to perform given his current state and his previous action
         step++;
@@ -152,21 +176,6 @@ public class BasicAgent extends Agent {
         //CHECK WHERE TO FIT SELECTION PROCESS.... WHEN TO RESTART THE WEIGHTS.. PROBABLY WHEN HE IS DONE..
         //ALSO CHECK WHEN TASKS ARE HANDLED... HOW TO MARK THEM SO THAT AGENTS THAT DIDN'T RECEIVE ANYTHING DON'T INTERFEER....
 
-        //If Agent sees a teammate -> share relative positions!
-        if (this.perceptionHandler.getTeammates().size() > 0) {
-            Map<String, IntegerPair> myInfo = new HashMap<>();
-            for (var teamMate : this.perceptionHandler.getTeammates()) {
-                //WADIE CALL BROADCAST...
-                //broadcast(perceptionHandler.makePercept("Weights", w), getName());
-                broadcast(perceptionHandler.makePercept("Locations",
-                        teamMate.getX(), teamMate.getY(), this.mapHandler.getAgentLocation().getX(),
-                        this.perceptionHandler.getAgentMovement().getY()),
-                        getName());
-            }
-
-
-            shareRelativePositions();
-        }
 
         switch(state){
             case Exploring:
@@ -180,6 +189,16 @@ public class BasicAgent extends Agent {
             case MovingToGoal:
                 return moveToGoal();
             case AtGoal:
+                requirements.remove(requirement); 
+                if(teamMatesTrans.size() > 0){
+                    for(var teamMate : teamMatesTrans.keySet()){
+                        Block requirement = requirements.keySet().stream().findFirst().get();
+                        //TODO make a better percept for the requirement
+                        sendMessage(perceptionHandler.makePercept("Help", requirement.getType()), teamMate, getName());
+                    }
+                }
+                
+                //TODO Connect shit (ADAM)
                 //HELP ON THE WAY...
                 /*if(helpArrived){//if teamMate has arrived, now connect blocks
                     connectBLocks();//part of the submit should move here...the part of rotating..

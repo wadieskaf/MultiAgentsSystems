@@ -138,7 +138,7 @@ public class PerceptionHandler {
 
 	private List<Percept> filterTeammates() {
 		Stream<Percept> entities = filterByType("entity");
-		return entities.filter(p -> getStringParameter(p, 3).equals(team)).collect(Collectors.toList());
+		return entities.filter(p -> getStringParameter(p, 3).equals(team)).filter(p -> !(getIntParameter(p, 0).equals(0) && getIntParameter(p, 1).equals(0))).collect(Collectors.toList());
 	}
 
 	private List<Percept> filterByName(String name) {

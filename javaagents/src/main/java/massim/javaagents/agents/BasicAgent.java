@@ -15,7 +15,7 @@ import massim.javaagents.utils.*;
 //java -jar target\javaagents-2019-1.0-jar-with-dependencies.jar
 
 public class BasicAgent extends Agent {
-    private enum State{Exploring, MovingToDispenser, NearDispenser, NearBlock, MovingToGoal, AtGoal}
+    private enum State{Exploring, MovingToDispenser, NearDispenser, NearBlock, MovingToGoal, AtGoal, InPosition}
 
     private MapHandler mapHandler;
     private PerceptionHandler perceptionHandler;
@@ -137,7 +137,7 @@ public class BasicAgent extends Agent {
 
     @Override
     public Action step() {
-        //if(getName().equals("agentA1"))say(Whiteboard.getAllAssigned().toString());
+        if(getName().equals("agentA1"))say(Whiteboard.getAllAssigned().toString());
         say("teammates: " + teamMatesTrans.toString());
         //PHASE 1 (Sense) - Agent gets perceptions from Environment
         List<Percept> percepts = getPercepts();
@@ -197,8 +197,7 @@ public class BasicAgent extends Agent {
                         sendMessage(perceptionHandler.makePercept("Help", requirement.getType()), teamMate, getName());
                     }
                 }
-                
-                //TODO Connect shit (ADAM)
+                     
                 //HELP ON THE WAY...
                 /*if(helpArrived){//if teamMate has arrived, now connect blocks
                     connectBLocks();//part of the submit should move here...the part of rotating..
@@ -213,6 +212,8 @@ public class BasicAgent extends Agent {
                     //return submit();
                 }*/
                 return new Action("skip");
+            case InPosition:
+                createPattern();    
         }
 
         return new Action("skip");
@@ -395,6 +396,37 @@ public class BasicAgent extends Agent {
         return new Action("submit", new Identifier(activeTask.getName()));
     }
 
+    private Action createPattern(){
+        //TODO Connect shit (ADAM)
+        //Preconds: 2 blocks/task, help is here, the agent needing help has the first requirement under him, helper on his right side with other block under him.
+        /*
+            3 cases for 2 blocks: {(0,1),(1,1)}, {(-1,1),(0,1)}, {(0,1),(0,2)} (assume that the order of the requrements are fixed in the percept (e.g. (0,1) always comes before (1,1))
+            Algorithm:
+                the agent seeking help always goes for the first requirement in the tasks percept
+                in the goal (or before) rotates the block to (0,1)
+                the helper always moves to the right side of the agent with the othe block under him
+                case 1:
+                    The blocks are in the correct position relative to the main agent
+                    connect the blocks
+                    helper detaches
+                    main agent submits
+                case 2:
+                    The blocks are in the correct position relative to the helper
+                    connect blocks
+                    main agent detaches
+                    helper submits
+                case 3:
+                    helper moves down twice then rotates clockwise (What does the main agent do in the meantime?)
+                    The block are in the correct position relative to the main agent
+                    connect blocks
+                    helper detaches
+                    main agent submits    
+        */
+        int patternCase = 0;
+        
+        return new Action("skip");
+    }
+    
     private List<IntegerPair> lookForDispenserV2(String detail){
         Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
         if(dispensers.size() > 0){

@@ -6,7 +6,7 @@
     "launch" : "key",
     "port" : 12300,
     "backlog" : 10000,
-    "agentTimeout" : 4000,
+    "agentTimeout" : 500,
     "resultPath" : "results",
     "logLevel" : "normal",
     "logPath" : "logs",
@@ -56,7 +56,7 @@
       "tasks" : {
         "size" : [2, 2],
         "duration" : [100, 200],
-        "probability" : 0.05
+        "probability" : 0.1
       },
 
       "events" : {

@@ -14,6 +14,12 @@ import massim.javaagents.utils.*;
 
 //java -jar target\javaagents-2019-1.0-jar-with-dependencies.jar
 
+//TODO
+//WADIE -: FIXING MOVING WITH BLOCKS ... SHARINGMAP
+//BRUNO -: CHECK TIME....FOR DROPPING OR NOT TASKS.... IF REQUIREMENTS ARE SAME TYPE... B2 AND B2....SIMPLIFY... DONT NEED THE TASK ... LOOK ONLY FOR BLOCK, AND THE X,Y OF REQ.. CASE HELPING.
+//ADAM -: MAKE JAVA CODE OF CONNECTING... 
+
+
 public class BasicAgent extends Agent {
     private enum State{Exploring, MovingToDispenser, NearDispenser, NearBlock, MovingToGoal, AtGoal, InPosition}
 
@@ -38,7 +44,7 @@ public class BasicAgent extends Agent {
     Map<String, int[]> weightsOfOthers;
     private String taskAssigned;
 
-    private List<String> announcedTo = new LinkedList<>();
+    private Set<String> announcedTo;
     private Map<String, Map<String, Integer>> bids = new HashMap<>();
 
     //CONTROL THE HELPING PART
@@ -73,6 +79,7 @@ public class BasicAgent extends Agent {
         this.taskAssigned = "";
         this.teamMatesTrans = new HashMap<>();
         alreadySkipped = false;
+        announcedTo = new HashSet<>();
     }
 
 
@@ -119,53 +126,40 @@ public class BasicAgent extends Agent {
 
         else if(message.getName().equals("Announcement")){
 
-            //I'm busy... leave me alone
-            if(activeTask != null){
-                sendMessage(perceptionHandler.makePercept("Bid", "", -1), sender, getName());
-            }
             //Ok, let me check
-            else{
-                List<Parameter> pars = message.getClonedParameters();
-                String[] reqs = new String[pars.size()];
-                String taskReceived = ((Identifier) pars.get(0)).getValue();
-                //say("Received task:" + taskReceived + " from " + sender);
-                for (int i = 1; i < reqs.length - 1; i++) {
-                    reqs[i] = ((Identifier) pars.get(i)).getValue();
-                }
+            List<Parameter> pars = message.getClonedParameters();
+            String[] reqs = new String[pars.size()-1];
+            String taskReceived = ((Identifier) pars.get(0)).getValue();
+            //say("Received task:" + taskReceived + " from " + sender);
+            for (int i = 0; i < reqs.length; i++) {
+                reqs[i] = ((Identifier) pars.get(i+1)).getValue();
+            }
 
-                int ind = perceptionHandler.getTasks().indexOf(taskReceived);
-                Task t = perceptionHandler.getTasks().get(ind);
+            String req = "";
+            int min = 1000;
 
-                String req = "";
-                int min = 1000;
-
-                for(int i=1; i<reqs.length - 1; i++){
-                    if(t.getRequirements().get(reqs[i]) == false){
-                        Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(reqs[i]);
-                        if(!dispensers.isEmpty()){
-                            List<IntegerPair> p = lookForDispenserV2(reqs[i]);
-                            if(p.size() < min){
-                                req = reqs[i];
-                                min = p.size();
-                            }
+            for(int i=0; i<reqs.length; i++){
+                Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(reqs[i]);
+                    if(!dispensers.isEmpty()){
+                        List<IntegerPair> p = lookForDispenserV2(reqs[i]);
+                        if(p.size() < min){
+                            req = reqs[i];
+                            min = p.size();
                         }
                     }
-                    else{
-                        continue;
-                    }
-                }
+            }
 
-                if(!req.equals("")){
-                    sendMessage(perceptionHandler.makePercept("Bid", req, min), sender, getName());
-                }
-                else{
-                    sendMessage(perceptionHandler.makePercept("Bid", "", -1), sender, getName());
-                }
+            if(!req.equals("")){
+                sendMessage(perceptionHandler.makePercept("Bid", req, min), sender, getName());
+            }
+            else{
+                sendMessage(perceptionHandler.makePercept("Bid", "", -1), sender, getName());
             }
 
         }
 
         else if (message.getName().equals("Bid")) {
+            //say("From " + sender + ": " + message.getParameters().toString());
             List<Parameter> pars = message.getClonedParameters();
 
             String bidKey = ((Identifier) pars.get(0)).getValue();
@@ -174,19 +168,21 @@ public class BasicAgent extends Agent {
             Map<String, Integer> bid = new HashMap<>();
             bid.put(bidKey, bidValue);
             bids.put(sender, bid);
-
+            say(bids.toString());
             Map<String, String> award = new HashMap<>();
-
+            say("announced to: " + announcedTo.size());
             if(bids.size() == announcedTo.size()){
+                
                 for(String agent : bids.keySet()){
                     Map.Entry<String,Integer> entry = bids.get(agent).entrySet().iterator().next();
-                    if(entry.getKey() == "" || award.containsValue(agent)){
+                    if(entry.getKey().equals("") || award.containsValue(agent)){
                         continue;
                     }
+                    award.put(entry.getKey(), agent);
                     for(String otherAgent : bids.keySet()){
                         if(agent != otherAgent){
                             Map.Entry<String,Integer> otherEntry = bids.get(otherAgent).entrySet().iterator().next();
-                            if(otherEntry.getKey() == "" || entry.getKey() != otherEntry.getKey()){
+                            if(otherEntry.getKey().equals("") || entry.getKey() != otherEntry.getKey()){
                                 if(!award.containsValue(agent))
                                     award.put(entry.getKey(), agent);
                             }
@@ -203,16 +199,17 @@ public class BasicAgent extends Agent {
                     }
                 }
             }
-
-
+            say(award.toString());
+            Block rr = null;
             if(award.size()>0){
                 for(String awardedReq : award.keySet()){
                     for(var r : requirements.keySet()){
                         if(r.getType() == awardedReq){
                             requirements.replace(r,true);
+                            rr = r;
                         }
                     }
-                    sendMessage(perceptionHandler.makePercept("Award", activeTask.getName(), awardedReq), award.get(awardedReq), getName());
+                    sendMessage(perceptionHandler.makePercept("Award", activeTask.getName(), awardedReq, rr.getX(), rr.getY()), award.get(awardedReq), getName());
                 }
             }
             //maybe sent "" to the ones that didn't receive anything????
@@ -225,8 +222,7 @@ public class BasicAgent extends Agent {
             String taskReceived = ((Identifier) pars.get(0)).getValue(); //the task I was awarded
             String awardedRequirement = ((Identifier) pars.get(1)).getValue(); //the requirement I was awarded
 
-            int ind = perceptionHandler.getTasks().indexOf(taskReceived);
-            activeTask = perceptionHandler.getTasks().get(ind);
+            activeTask = perceptionHandler.getTasks().stream().filter(p -> p.getName().equals(taskReceived)).findAny().get();
 
             for(var req : activeTask.getRequirements().keySet()){
                 if(req.getType() == awardedRequirement){
@@ -243,8 +239,8 @@ public class BasicAgent extends Agent {
 
     @Override
     public Action step() {
-        if(getName().equals("agentA1"))say(Whiteboard.getAllAssigned().toString());
-        say("teammates: " + teamMatesTrans.toString());
+        //if(getName().equals("agentA1"))say(Whiteboard.getAllAssigned().toString());
+        //say("teammates: " + teamMatesTrans.toString());
         //PHASE 1 (Sense) - Agent gets perceptions from Environment
         List<Percept> percepts = getPercepts();
         this.perceptionHandler = new PerceptionHandler(percepts);
@@ -319,6 +315,7 @@ public class BasicAgent extends Agent {
                             taskSpecs.toArray(taskSpecsToSend);
 
                             //send a message of format ["task1", "b2", "b3"]
+                            
                             announcedTo.add(teamMate);
                             sendMessage(perceptionHandler.makePercept("Announcement", taskSpecsToSend), teamMate, getName());
                         }
@@ -336,6 +333,9 @@ public class BasicAgent extends Agent {
                 }
 
                 return new Action("skip");
+                
+            case InPosition:
+                createPattern();
         }
 
         return new Action("skip");
@@ -398,6 +398,7 @@ public class BasicAgent extends Agent {
             }
 
             //requirement = activeTask.getRequirement();
+            //TODO check this part
             requirements = activeTask.getRequirements();
             for(Map.Entry<Block,Boolean> req : requirements.entrySet()){
                 String detail = req.getKey().getType();

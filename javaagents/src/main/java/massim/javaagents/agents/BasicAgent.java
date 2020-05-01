@@ -103,7 +103,7 @@ public class BasicAgent extends Agent {
 
         //task
 
-        //name
+        //Locations
         else if (message.getName().equals("Locations")) {
             List<Parameter> pars = message.getClonedParameters();
             //WADIE MAKE THIS
@@ -116,8 +116,9 @@ public class BasicAgent extends Agent {
                     IntegerPair teammateRelativeLocation = new IntegerPair(teammate.getX(), teammate.getY());
                     if (possibleRelativeLocation.equals(teammateRelativeLocation)){
                         IntegerPair transform = this.mapHandler.getTeammateTransfer(teammateRelativeLocation,
-                                teammateLocation, sender);
+                                teammateLocation);
                         if(!teamMatesTrans.containsKey(sender)) this.teamMatesTrans.put(sender, transform);
+                        //shareMap(sender);
                         break;
                     }
                 }
@@ -233,6 +234,41 @@ public class BasicAgent extends Agent {
             }
 
             helping = true;
+        }
+
+        //Go
+        else if (message.getName().equals("GO")){
+
+            sendMessage(perceptionHandler.makePercept("HERE", this.mapHandler.getAgentLocation().getX(),
+                    this.mapHandler.getAgentLocation().getY()), sender, this.getName());
+
+        }
+        //HERE
+        else if (message.getName().equals("HERE")){
+            List<Parameter> pars = message.getClonedParameters();
+            IntegerPair teammateLocation = new IntegerPair(((Numeral) pars.get(0)).getValue().intValue(),
+                    ((Numeral) pars.get(1)).getValue().intValue());
+            IntegerPair transformation = teamMatesTrans.get(sender);
+            IntegerPair desiredLocation = teammateLocation.add(transformation);
+
+            //GOTO this location
+
+        }
+        else if(message.getName().equals("MapSharing")){
+            List<Parameter> pars = message.getClonedParameters();
+            CellType cellType = CellType.valueOf(((Identifier)pars.get(0)).getValue());
+            String cellClass = ((Identifier)pars.get(1)).getValue();
+            IntegerPair cellLocation = new IntegerPair(((Numeral) pars.get(2)).getValue().intValue(),
+                    ((Numeral) pars.get(3)).getValue().intValue());
+            Cell cell;
+            if (cellClass == "Detailed"){
+                String details = ((Identifier)pars.get(4)).getValue();
+                cell = new DetailedCell(cellType, details);
+            } else {
+                cell = new OrdinaryCell(cellType);
+            }
+            IntegerPair transform = this.teamMatesTrans.get(sender);
+            this.mapHandler.makeTransformation(transform, cell, cellLocation);
         }
 
     }
@@ -669,6 +705,93 @@ public class BasicAgent extends Agent {
 
         String direction = coordinatesToDirection(this.agentMovement);
         return new Action("move", new Identifier(direction));
+    }
+
+    private Boolean check(){
+        String nextStep = coordinatesToDirection(this.activePath.get(0));
+        boolean stuck = false;
+        List<Thing> attachedItemsList = this.perceptionHandler.getAttached();
+        if (!attachedItemsList.isEmpty()){
+            for (var attachedItem: attachedItemsList){
+                IntegerPair relativePosition = new IntegerPair(attachedItem.getX(), attachedItem.getY());
+                String attachmentDirection = coordinatesToDirection(relativePosition);
+                IntegerPair direction = new IntegerPair(9,9);
+                Cell checkCell;
+                switch (attachmentDirection){
+                    case "n":
+                        if (nextStep.equals("e") || nextStep.equals("w")) {
+                            if (nextStep.equals("e")) {
+                                direction = new IntegerPair(-1, -1);
+                            } else {
+                                direction = new IntegerPair(-1, 1);
+                            }
+                        }
+                        break;
+                    case "w":
+                        if (nextStep.equals("n") || nextStep.equals("s")) {
+                            if (nextStep.equals("n")){
+                                direction = new IntegerPair(-1,1);
+                            } else {
+                                direction = new IntegerPair(1,1);
+                            }
+                        }
+                        break;
+                    case "s":
+                        if (nextStep.equals("w") || nextStep.equals("e")){
+                            if (nextStep.equals("w")){
+                                direction = new IntegerPair(1,1);
+                            } else {
+                                direction = new IntegerPair(1,-1);
+                            }
+                        }
+                        break;
+                    case "e":
+                        if (nextStep.equals("n") || nextStep.equals("s")){
+                            if (nextStep.equals("n")){
+                                direction = new IntegerPair(-1,-1);
+                            } else {
+                                direction = new IntegerPair(1,-1);
+                            }
+                        }
+                        break;
+                }
+                if (!direction.equals(new IntegerPair(9,9))) {
+                    checkCell = this.mapHandler.getCell(this.mapHandler.getAgentLocation().add(direction));
+                    if (checkCell.getType() != CellType.Empty) {
+                        stuck = true;
+                    }
+                }
+
+            }
+
+        }
+        return stuck;
+    }
+
+    private void shareMap(String receiver){
+        String cellClass;
+        String details;
+        CellType cellType;
+        for(int i=0; i<this.mapHandler.getMap().length; i++){
+            for(int j=0;j<this.mapHandler.getMap()[0].length; j++){
+                Cell item = this.mapHandler.getCell(new IntegerPair(i,j));
+                cellType = item.getType();
+                if (cellType == CellType.Dispenser || cellType == CellType.Block){
+                    cellClass = "Detailed";
+                    details = ((DetailedCell)item).getDetails();
+                    sendMessage(this.perceptionHandler.makePercept("MapSharing",
+                            cellType, cellClass,i,j, details)
+                            ,receiver, this.getName());
+                }
+                else {
+                    cellClass = "Ordinal";
+                    sendMessage(this.perceptionHandler.makePercept("MapSharing",
+                            cellType, cellClass,i,j),
+                            receiver, this.getName());
+                }
+
+            }
+        }
     }
 
 }

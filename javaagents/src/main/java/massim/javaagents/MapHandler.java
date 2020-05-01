@@ -209,7 +209,7 @@ public class MapHandler {
 
     }
 
-    public IntegerPair getTeammateTransfer(IntegerPair teammatePercept, IntegerPair teammateLocation, String name) {
+    public IntegerPair getTeammateTransfer(IntegerPair teammatePercept, IntegerPair teammateLocation) {
         IntegerPair internalTeammateLocation = this.agentLocation.add(teammatePercept);
         IntegerPair transformationVector = internalTeammateLocation.subtract(teammateLocation);
         return transformationVector;

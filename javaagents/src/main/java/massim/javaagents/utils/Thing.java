@@ -1,7 +1,7 @@
 package massim.javaagents.utils;
 
 public class Thing{
-    private int x, y;
+    protected int x, y;
     
     public Thing(int x, int y){
         this.x = x;

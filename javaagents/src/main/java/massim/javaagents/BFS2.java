@@ -23,8 +23,16 @@ public class BFS2 {
 		parent = new HashMap<>();
 	}
 	
+	public List<IntegerPair> explore(){
+		return BFS(CellType.Unknown, "", true);
+	}
+	
 	public List<IntegerPair> BFS(CellType type, String detail){
-		IntegerPair goal = search(type, detail);
+		return BFS(type, detail, false);
+	}
+	
+	public List<IntegerPair> BFS(CellType type, String detail, boolean explore){
+		IntegerPair goal = search(type, detail, explore);
 		if(goal == null) return null;
 		return createPath(goal);
 	}
@@ -39,7 +47,7 @@ public class BFS2 {
 		return path;
 	}
 	
-	private IntegerPair search(CellType type, String detail)
+	private IntegerPair search(CellType type, String detail, boolean explore)
 	{ 
 		IntegerPair s = mh.getAgentLocation();
 		// Create a queue for BFS 
@@ -56,12 +64,13 @@ public class BFS2 {
 			// Dequeue a vertex from queue and print it 
 			s = queue.poll(); 
 			
-			if(mh.getCell(s).getType().equals(type)){
+			if(!explore && mh.getCell(s).getType().equals(type)){
 				if(detail.equals("")) return s;
 				if(((DetailedCell)mh.getCell(s)).getDetails().equals(detail)) return s;
 			}
+			else if(explore && mh.getCell(s).getType().equals(CellType.Unknown)) return s;
   
-			Iterator<IntegerPair> i = possibleNeighbours(s).listIterator(); 
+			Iterator<IntegerPair> i = possibleNeighbours(s, explore).listIterator(); 
 			while (i.hasNext()) 
 			{ 
 				IntegerPair n = i.next(); 
@@ -76,7 +85,7 @@ public class BFS2 {
 		return null;
 	} 
 	
-	private List<IntegerPair> possibleNeighbours(IntegerPair pos){
+	private List<IntegerPair> possibleNeighbours(IntegerPair pos, boolean explore){
 		int [] directionInX = {-1,1,0,0};
 		int [] directionInY = {0,0,1,-1};
 		List<IntegerPair> res = new LinkedList<>();
@@ -88,7 +97,7 @@ public class BFS2 {
 			}
 			//cell type
 			if(!(mh.getCell(newPos).getType().equals(CellType.Empty) || mh.getCell(newPos).getType().equals(CellType.Dispenser) || mh.getCell(newPos).getType().equals(CellType.Block) || mh.getCell(newPos).getType().equals(CellType.Goal))){
-				continue;
+				if(!(mh.getCell(newPos).getType().equals(CellType.Unknown) && explore)) continue;
 			}
 			res.add(newPos);
 		}

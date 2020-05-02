@@ -118,12 +118,18 @@ public class BasicAgent extends Agent {
                     if (possibleRelativeLocation.equals(teammateRelativeLocation)){
                         IntegerPair transform = this.mapHandler.getTeammateTransfer(teammateRelativeLocation,
                                 teammateLocation);
-                        if(!teamMatesTrans.containsKey(sender)) this.teamMatesTrans.put(sender, transform);
-                        //shareMap(sender);
+                        if(!teamMatesTrans.containsKey(sender)) {
+                            this.teamMatesTrans.put(sender, transform);
+                            sendMessage(perceptionHandler.makePercept("ReadyToShare"), sender, getName());
+                        }
                         break;
                     }
                 }
             }
+        }
+        
+        else if(message.getName().equals("ReadyToShare")){
+            shareMap(sender);
         }
 
         else if(message.getName().equals("Announcement")){
@@ -270,6 +276,7 @@ public class BasicAgent extends Agent {
             }
             IntegerPair transform = this.teamMatesTrans.get(sender);
             this.mapHandler.makeTransformation(transform, cell, cellLocation);
+            mapHandler.printMapToFile("maps\\" + getName() + "mapSharedWith" + sender + ".txt");
         }
 
     }
@@ -286,7 +293,7 @@ public class BasicAgent extends Agent {
         this.mapHandler.updateMap(perceptionHandler);//needs to check if lastAction was successful before updating...
         
         //if(perceptionHandler.getStep() % 100 == 0)mapHandler.printMapToFile("maps\\" + getName() + perceptionHandler.getStep() + ".txt");
-        if(true)return explore();
+        //if(true)return explore();
         
         //If Agent sees a teammate -> share relative positions!
         if (this.perceptionHandler.getTeammates().size() > 0) {
@@ -294,7 +301,7 @@ public class BasicAgent extends Agent {
             for (var teamMate : this.perceptionHandler.getTeammates()) {
                 broadcast(perceptionHandler.makePercept("Locations",
                         teamMate.getX(), teamMate.getY(), this.mapHandler.getAgentLocation().getX(),
-                        this.perceptionHandler.getAgentMovement().getY()),
+                        this.mapHandler.getAgentLocation().getY()),
                         getName());
             }
             if(!alreadySkipped){
@@ -302,7 +309,10 @@ public class BasicAgent extends Agent {
                 return new Action("skip");
             }
             alreadySkipped = false;
+            
         }
+        
+        if(true)return explore();
 
        /* if (check()){
             moveRandom();
@@ -853,6 +863,7 @@ public class BasicAgent extends Agent {
             for(int j=0;j<this.mapHandler.getMap()[i].length; j++){
                 Cell item = this.mapHandler.getCell(new IntegerPair(i,j));
                 cellType = item.getType();
+                if(cellType.equals(CellType.Unknown)) continue;
                 if (cellType == CellType.Dispenser || cellType == CellType.Block){
                     cellClass = "Detailed";
                     details = ((DetailedCell)item).getDetails();

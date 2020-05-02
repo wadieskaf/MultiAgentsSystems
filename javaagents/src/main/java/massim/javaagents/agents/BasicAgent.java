@@ -15,10 +15,10 @@ import massim.javaagents.utils.*;
 
 //java -jar target\javaagents-2019-1.0-jar-with-dependencies.jar
 
-//TODO
-//WADIE -: FIXING MOVING WITH BLOCKS ... SHARINGMAP
-//BRUNO -: CHECK TIME....FOR DROPPING OR NOT TASKS.... IF REQUIREMENTS ARE SAME TYPE... B2 AND B2....SIMPLIFY... DONT NEED THE TASK ... LOOK ONLY FOR BLOCK, AND THE X,Y OF REQ.. CASE HELPING.
-//ADAM -: MAKE JAVA CODE OF CONNECTING... 
+//TODO:
+//BRUNO: CONNECTION
+//WADIE: STUCK, MAP SHARIN
+//ADAM: MAP SHARING, BFS(LOCATION)
 
 
 public class BasicAgent extends Agent {
@@ -349,11 +349,16 @@ public class BasicAgent extends Agent {
 
         }
 
-        if(true)return explore();
+        //if(true)return explore();
 
        /* if (check()){
             moveRandom();
         } */
+        
+        /*if(perceptionHandler.getFailed()){
+            activePath.clear();
+            return moveRandom();
+        }*/
 
         //PHASE 3 (Deliberate) - Agent tries to figure out what is the best action to perform given his current state and his previous action
         Action act = chooseAction();
@@ -406,7 +411,8 @@ public class BasicAgent extends Agent {
     private Action goToYou(){
         //call bfs on specific location and follow the path to it.
         //when we arrive there -> change state to InPosition.
-        return null;
+        say("im going yaaay");
+        return new Action("skip");
     }
 
     private Action doHelp(){
@@ -556,7 +562,7 @@ public class BasicAgent extends Agent {
     }
 
     private Action moveToDispenser(String detail){
-        if(activePath.isEmpty() || perceptionHandler.getFailed()){
+        if(activePath.isEmpty() || activePath == null || perceptionHandler.getFailed()){
             activePath = lookForDispenserV2(detail); //action can be "move" if going for a dispenser | "request" if already near a dispenser | "attach" if we have requested a block from the dispenser || "null" if we haven't seen any dispenser yet
             activePath.remove(0);
         }
@@ -603,7 +609,8 @@ public class BasicAgent extends Agent {
     private Action moveToGoal(){
         if(isGoal()){
             state = State.AtGoal;
-            return submit();
+            //return trySubmition();
+            return new Action("skip");
         }
         List<IntegerPair> goals = mapHandler.getGoalList();
         if(goals.isEmpty()){
@@ -825,12 +832,12 @@ public class BasicAgent extends Agent {
     }
 
     public Action explore(){
-        BFS2 bfs = new BFS2(mapHandler);
+        /*BFS2 bfs = new BFS2(mapHandler);
         List<IntegerPair> path = bfs.explore();
         if(path.isEmpty()) return moveRandom();
         path.remove(0);
-        return moveTo(path.remove(0));
-        /*IntegerPair agentLocation = this.mapHandler.getAgentLocation();
+        return moveTo(path.remove(0));*/
+        IntegerPair agentLocation = this.mapHandler.getAgentLocation();
         int [] directionInX = {-1,1,0,0};
         int [] directionInY = {0,0,1,-1};
 
@@ -851,7 +858,7 @@ public class BasicAgent extends Agent {
             }
             return moveTo(newCellPos);
         }
-        return moveRandom();*/
+        return moveRandom();
 
     }
 
@@ -943,8 +950,8 @@ public class BasicAgent extends Agent {
         String cellClass;
         String details;
         CellType cellType;
-        for(int i=0; i<this.mapHandler.getMap().length; i++){
-            for(int j=0;j<this.mapHandler.getMap()[i].length; j++){
+        for(int i=0; i<this.length; i++){
+            for(int j=0;j<this.width; j++){
                 Cell item = this.mapHandler.getCell(new IntegerPair(i,j));
                 cellType = item.getType();
                 if(cellType.equals(CellType.Unknown)) continue;

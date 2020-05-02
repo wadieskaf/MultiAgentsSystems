@@ -22,7 +22,8 @@ import massim.javaagents.utils.*;
 
 
 public class BasicAgent extends Agent {
-    private enum State{Exploring, MovingToDispenser, NearDispenser, NearBlock, MovingToGoal, AtGoal, InPosition, Helping, LookingForYou, GoingToYou}
+    private enum State{Exploring, MovingToDispenser, NearDispenser, NearBlock, MovingToGoal, AtGoal, InPosition, Helping, BuildPattern, LookingForYou, GoingToYou}
+
 
     private MapHandler mapHandler;
     private PerceptionHandler perceptionHandler;
@@ -34,7 +35,6 @@ public class BasicAgent extends Agent {
     private Action action;
     private boolean requested;
     private List<IntegerPair> activePath;
-    private int step;
     private Block requirement;
     private Map<Block, Boolean> requirements;
     private State state;
@@ -47,6 +47,8 @@ public class BasicAgent extends Agent {
 
     private Set<String> announcedTo;
     private Map<String, Map<String, Integer>> bids = new HashMap<>();
+
+    private List<Action> activeActions;
 
     //CONTROL THE HELPING PART
     private boolean helping = false;
@@ -72,7 +74,6 @@ public class BasicAgent extends Agent {
         this.action = null;
         this.requested = false;
         this.activePath = new LinkedList<>();
-        this.step = 0;
         this.requirement = null;
         this.state = State.Exploring;
         this.weightsOfOthers = new HashMap<>();
@@ -81,6 +82,7 @@ public class BasicAgent extends Agent {
         this.teamMatesTrans = new HashMap<>();
         alreadySkipped = false;
         announcedTo = new HashSet<>();
+        activeActions = new LinkedList<>();
     }
 
 
@@ -102,7 +104,9 @@ public class BasicAgent extends Agent {
             weightsOfOthers.put(sender, weights);
         }
 
-        //name
+        //task
+
+        //Locations
         else if (message.getName().equals("Locations")) {
             List<Parameter> pars = message.getClonedParameters();
             //WADIE MAKE THIS
@@ -114,13 +118,19 @@ public class BasicAgent extends Agent {
                 for(var teammate: this.perceptionHandler.getTeammates()){
                     IntegerPair teammateRelativeLocation = new IntegerPair(teammate.getX(), teammate.getY());
                     if (possibleRelativeLocation.equals(teammateRelativeLocation)){
-                        IntegerPair transform = this.mapHandler.getTeammateTransfer(teammateRelativeLocation,
-                                teammateLocation, sender);
-                        if(!teamMatesTrans.containsKey(sender)) this.teamMatesTrans.put(sender, transform);
+                        IntegerPair transform = this.mapHandler.getTeammateTransfer(teammateRelativeLocation,teammateLocation);
+                        if(!teamMatesTrans.containsKey(sender)) {
+                            this.teamMatesTrans.put(sender, transform);
+                            sendMessage(perceptionHandler.makePercept("ReadyToShare"), sender, getName());
+                        }
                         break;
                     }
                 }
             }
+        }
+
+        else if(message.getName().equals("ReadyToShare")){
+            shareMap(sender);
         }
 
         else if(message.getName().equals("Announcement")){
@@ -266,6 +276,42 @@ public class BasicAgent extends Agent {
             helping = true;
         }
 
+        //Go
+        else if (message.getName().equals("GO")){
+
+            sendMessage(perceptionHandler.makePercept("HERE", this.mapHandler.getAgentLocation().getX(),
+                    this.mapHandler.getAgentLocation().getY()), sender, this.getName());
+
+        }
+        //HERE
+        else if (message.getName().equals("HERE")){
+            List<Parameter> pars = message.getClonedParameters();
+            IntegerPair teammateLocation = new IntegerPair(((Numeral) pars.get(0)).getValue().intValue(),
+                    ((Numeral) pars.get(1)).getValue().intValue());
+            IntegerPair transformation = teamMatesTrans.get(sender);
+            IntegerPair desiredLocation = teammateLocation.add(transformation);
+
+            //GOTO this location
+
+        }
+        else if(message.getName().equals("MapSharing")){
+            List<Parameter> pars = message.getClonedParameters();
+            CellType cellType = CellType.valueOf(((Identifier)pars.get(0)).getValue());
+            String cellClass = ((Identifier)pars.get(1)).getValue();
+            IntegerPair cellLocation = new IntegerPair(((Numeral) pars.get(2)).getValue().intValue(),
+                    ((Numeral) pars.get(3)).getValue().intValue());
+            Cell cell;
+            if (cellClass == "Detailed"){
+                String details = ((Identifier)pars.get(4)).getValue();
+                cell = new DetailedCell(cellType, details);
+            } else {
+                cell = new OrdinaryCell(cellType);
+            }
+            IntegerPair transform = this.teamMatesTrans.get(sender);
+            this.mapHandler.makeTransformation(transform, cell, cellLocation);
+            mapHandler.printMapToFile("maps\\" + getName() + "mapSharedWith" + sender + ".txt");
+        }
+
     }
 
     @Override
@@ -279,6 +325,9 @@ public class BasicAgent extends Agent {
         //PHASE 2 (Internal State) - Agent updates its internal state
         this.mapHandler.updateMap(perceptionHandler);//needs to check if lastAction was successful before updating...
 
+        //if(perceptionHandler.getStep() % 100 == 0)mapHandler.printMapToFile("maps\\" + getName() + perceptionHandler.getStep() + ".txt");
+        //if(true)return explore();
+
         //If Agent sees a teammate -> share relative positions!
         if (this.perceptionHandler.getTeammates().size() > 0) {
             say("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!MET!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -286,7 +335,7 @@ public class BasicAgent extends Agent {
             for (var teamMate : this.perceptionHandler.getTeammates()) {
                 broadcast(perceptionHandler.makePercept("Locations",
                         teamMate.getX(), teamMate.getY(), this.mapHandler.getAgentLocation().getX(),
-                        this.perceptionHandler.getAgentMovement().getY()),
+                        this.mapHandler.getAgentLocation().getY()),
                         getName());
             }
             if(!alreadySkipped){
@@ -294,10 +343,16 @@ public class BasicAgent extends Agent {
                 return new Action("skip");
             }
             alreadySkipped = false;
+
         }
 
+        if(true)return explore();
+
+       /* if (check()){
+            moveRandom();
+        } */
+
         //PHASE 3 (Deliberate) - Agent tries to figure out what is the best action to perform given his current state and his previous action
-        step++;
         Action act = chooseAction();
 
         //PHASE 4 (ACT) - Execute chosen action to achieve goal
@@ -417,6 +472,15 @@ public class BasicAgent extends Agent {
                     else{
                         //wait
                     }*/
+        }
+
+                return new Action("skip");
+                
+            case InPosition:
+                activeActions = createPattern(helping, new IntegerPair(0,0) /* requirement place*/);
+
+            case BuildPattern:
+                return buildPattern();
         }
 
         return new Action("skip");
@@ -557,6 +621,7 @@ public class BasicAgent extends Agent {
         return moveTo(activePath.remove(0));
     }
 
+    @Deprecated
     private Action submit(){
         List<Thing> attacheds = perceptionHandler.getAttached();
         if(attacheds.isEmpty()){
@@ -571,7 +636,8 @@ public class BasicAgent extends Agent {
         return new Action("submit", new Identifier(activeTask.getName()));
     }
 
-    private Action createPattern(){
+
+    private List<Action> createPattern(boolean amHelping, IntegerPair blockPlacement){
         //TODO Connect shit (ADAM)
         //Preconds: 2 blocks/task, help is here, the agent needing help has the first requirement under him, helper on his right side with other block under him.
         /*
@@ -598,8 +664,68 @@ public class BasicAgent extends Agent {
                     main agent submits
         */
         int patternCase = 0;
+        if((amHelping && blockPlacement.equals(new IntegerPair(1,1)))
+            || (!amHelping && activeTask.getRequrementList().get(1).equals(new IntegerPair(1,1))) ){//check the helper's requirement (we can compare a block with an integerPair)
+            patternCase = 1;
+        }
+        else if((amHelping && blockPlacement.equals(new IntegerPair(0,1)))
+                || (!amHelping && blockPlacement.equals(new IntegerPair(1, 1))) ){
+            patternCase = 2;
+        }
+        else{
+            patternCase = 3;
+        }
+        state = State.BuildPattern;
 
-        return new Action("skip");
+        switch(patternCase){
+            case 1:
+                if(amHelping) return List.of(
+                    new Action("connect", new Identifier("main agent"), new Numeral(0),new Numeral(1)),
+                    new Action("detach", new Identifier("s"))
+                );
+                return List.of(
+                    new Action("connect", new Identifier("helper"), new Numeral(0), new Numeral(1)),
+                    new Action("skip"),
+                    new Action("submit", new Identifier(activeTask.getName()))
+                );
+            case 2:
+                if(amHelping) return List.of(
+                    new Action("connect", new Identifier("main agent"), new Numeral(0),new Numeral(1)),
+                    new Action("skip"),
+                    new Action("submit", new Identifier("{taskName}"))
+                );
+                return List.of(
+                    new Action("connect", new Identifier("helper"), new Numeral(0), new Numeral(1)),
+                    new Action("detach", new Identifier("s"))
+                );
+            case 3:
+                if(amHelping) return List.of(
+                    new Action("move", new Identifier("s")),
+                    new Action("move", new Identifier("s")),
+                    new Action("rotate", new Identifier("cw")),
+                    new Action("connect", new Identifier("main agent"), new Numeral(-1),new Numeral(0)),
+                    new Action("detach", new Identifier("w"))
+                );
+                return List.of(
+                    new Action("skip"),
+                    new Action("skip"),
+                    new Action("skip"),
+                    new Action("connect", new Identifier("helper"), new Numeral(0), new Numeral(1)),
+                    new Action("skip"),
+                    new Action("submit", new Identifier(activeTask.getName()))
+                );
+        }
+
+        say("Something fucked up");
+        return List.of(new Action("skip"));
+    }
+
+    private Action buildPattern(){
+        if(activeActions.isEmpty()){
+            state = State.Exploring;
+            return new Action("skip");
+        }
+        return activeActions.remove(0);
     }
 
     private List<IntegerPair> lookForDispenserV2(String detail){
@@ -699,7 +825,12 @@ public class BasicAgent extends Agent {
     }
 
     public Action explore(){
-        IntegerPair agentLocation = this.mapHandler.getAgentLocation();
+        BFS2 bfs = new BFS2(mapHandler);
+        List<IntegerPair> path = bfs.explore();
+        if(path.isEmpty()) return moveRandom();
+        path.remove(0);
+        return moveTo(path.remove(0));
+        /*IntegerPair agentLocation = this.mapHandler.getAgentLocation();
         int [] directionInX = {-1,1,0,0};
         int [] directionInY = {0,0,1,-1};
 
@@ -720,7 +851,7 @@ public class BasicAgent extends Agent {
             }
             return moveTo(newCellPos);
         }
-        return moveRandom();
+        return moveRandom();*/
 
     }
 
@@ -745,6 +876,94 @@ public class BasicAgent extends Agent {
 
         String direction = coordinatesToDirection(this.agentMovement);
         return new Action("move", new Identifier(direction));
+    }
+
+    private Boolean check(){
+        String nextStep = coordinatesToDirection(this.activePath.get(0));
+        boolean stuck = false;
+        List<Thing> attachedItemsList = this.perceptionHandler.getAttached();
+        if (!attachedItemsList.isEmpty()){
+            for (var attachedItem: attachedItemsList){
+                IntegerPair relativePosition = new IntegerPair(attachedItem.getX(), attachedItem.getY());
+                String attachmentDirection = coordinatesToDirection(relativePosition);
+                IntegerPair direction = new IntegerPair(9,9);
+                Cell checkCell;
+                switch (attachmentDirection){
+                    case "n":
+                        if (nextStep.equals("e") || nextStep.equals("w")) {
+                            if (nextStep.equals("e")) {
+                                direction = new IntegerPair(1, -1);
+                            } else {
+                                direction = new IntegerPair(-1, -1);
+                            }
+                        }
+                        break;
+                    case "w":
+                        if (nextStep.equals("n") || nextStep.equals("s")) {
+                            if (nextStep.equals("n")){
+                                direction = new IntegerPair(-1,-1);
+                            } else {
+                                direction = new IntegerPair(-1,1);
+                            }
+                        }
+                        break;
+                    case "s":
+                        if (nextStep.equals("w") || nextStep.equals("e")){
+                            if (nextStep.equals("w")){
+                                direction = new IntegerPair(-1,1);
+                            } else {
+                                direction = new IntegerPair(1,1);
+                            }
+                        }
+                        break;
+                    case "e":
+                        if (nextStep.equals("n") || nextStep.equals("s")){
+                            if (nextStep.equals("n")){
+                                direction = new IntegerPair(1,-1);
+                            } else {
+                                direction = new IntegerPair(1,1);
+                            }
+                        }
+                        break;
+                }
+                if (!direction.equals(new IntegerPair(9,9))) {
+                    checkCell = this.mapHandler.getCell(this.mapHandler.getAgentLocation().add(direction));
+                    if (checkCell.getType() != CellType.Empty) {
+                        stuck = true;
+                    }
+                }
+
+            }
+
+        }
+        return stuck;
+    }
+
+    private void shareMap(String receiver){
+        String cellClass;
+        String details;
+        CellType cellType;
+        for(int i=0; i<this.mapHandler.getMap().length; i++){
+            for(int j=0;j<this.mapHandler.getMap()[i].length; j++){
+                Cell item = this.mapHandler.getCell(new IntegerPair(i,j));
+                cellType = item.getType();
+                if(cellType.equals(CellType.Unknown)) continue;
+                if (cellType == CellType.Dispenser || cellType == CellType.Block){
+                    cellClass = "Detailed";
+                    details = ((DetailedCell)item).getDetails();
+                    sendMessage(this.perceptionHandler.makePercept("MapSharing",
+                            cellType.toString(), cellClass,i,j, details)
+                            ,receiver, this.getName());
+                }
+                else {
+                    cellClass = "Ordinal";
+                    sendMessage(this.perceptionHandler.makePercept("MapSharing",
+                            cellType.toString(), cellClass,i,j),
+                            receiver, this.getName());
+                }
+
+            }
+        }
     }
 
 }

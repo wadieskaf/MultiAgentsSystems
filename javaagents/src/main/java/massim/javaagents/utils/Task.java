@@ -9,6 +9,7 @@ public class Task {
     private Integer deadLine;
     private Integer reward;
     private Map<Block, Boolean> requirements;
+    private List<Block> requirementList;
     //For the sake of simplicity we assume there's only one requirement
     private Block requirement;
 
@@ -31,8 +32,13 @@ public class Task {
     public Block getRequirement() {
         return this.requirement;
     }
+    
+    public List<Block> getRequrementList(){
+        return requirementList;
+    }
 
     public Task(List<Block> requirements, String name, Integer deadLine, Integer reward){
+        this.requirementList = requirements;
         this.requirements = new HashMap<>();
         for(var req : requirements){
             this.requirements.put(req, false);

@@ -75,6 +75,11 @@ public class PerceptionHandler {
 		return true;
 	}
 	
+	public Integer getStep(){
+		Percept stepPercept = filterByName("step").get(0);
+		return getIntParameter(stepPercept, 0);
+	}
+	
 	public List<Thing> getEmpty(){
 		List<Thing> empties = new LinkedList<>();
 		for(int i = -5; i <= 5; ++i){

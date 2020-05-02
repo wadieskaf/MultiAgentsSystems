@@ -5,6 +5,7 @@ import eis.iilang.*;
 import massim.javaagents.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import massim.javaagents.utils.*;
 
@@ -21,7 +22,7 @@ import massim.javaagents.utils.*;
 
 
 public class BasicAgent extends Agent {
-    private enum State{Exploring, MovingToDispenser, NearDispenser, NearBlock, MovingToGoal, AtGoal, InPosition}
+    private enum State{Exploring, MovingToDispenser, NearDispenser, NearBlock, MovingToGoal, AtGoal, InPosition, Helping, LookingForYou, GoingToYou}
 
     private MapHandler mapHandler;
     private PerceptionHandler perceptionHandler;
@@ -48,9 +49,9 @@ public class BasicAgent extends Agent {
     private Map<String, Map<String, Integer>> bids = new HashMap<>();
 
     //CONTROL THE HELPING PART
-    private boolean askedForHelp = false;
     private boolean helping = false;
 
+    private List<String> reqsAnn = new LinkedList<>(); //ignore it but don't delete it
 
     /**
      * Constructor.
@@ -101,8 +102,6 @@ public class BasicAgent extends Agent {
             weightsOfOthers.put(sender, weights);
         }
 
-        //task
-
         //name
         else if (message.getName().equals("Locations")) {
             List<Parameter> pars = message.getClonedParameters();
@@ -126,36 +125,49 @@ public class BasicAgent extends Agent {
 
         else if(message.getName().equals("Announcement")){
 
-            //Ok, let me check
             List<Parameter> pars = message.getClonedParameters();
             String[] reqs = new String[pars.size()-1];
+
             String taskReceived = ((Identifier) pars.get(0)).getValue();
-            //say("Received task:" + taskReceived + " from " + sender);
-            for (int i = 0; i < reqs.length; i++) {
-                reqs[i] = ((Identifier) pars.get(i+1)).getValue();
+            Task t = perceptionHandler.getTasks().stream().filter(p -> p.getName().equals(taskReceived)).findAny().get();
+
+            if(state.equals(State.Helping)){
+                //Already Helping, sorry
             }
+            else if(activeTask.getDeadLine() < t.getDeadLine()){
+                //Sorry, my task is almost done, I need to finish it.
+                say("Better time!");
+            }
+            else{
+                say("Your : " + t.getDeadLine() + " is better than mine: " + activeTask.getDeadLine() + ", so I got U :)");
+                //say("Ok, got u!");
+                //Ok, I am not helping anyone....or....I your task is going to be finished sooner, let me help....or... I'm not doing anything
+                for (int i = 0; i < reqs.length; i++) {
+                    reqs[i] = ((Identifier) pars.get(i+1)).getValue();
+                }
 
-            String req = "";
-            int min = 1000;
+                String req = "";
+                int min = 1000;
 
-            for(int i=0; i<reqs.length; i++){
-                Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(reqs[i]);
+                for(int i=0; i<reqs.length; i++){
+                    Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(reqs[i]);
                     if(!dispensers.isEmpty()){
-                        List<IntegerPair> p = lookForDispenserV2(reqs[i]);
+                        List<IntegerPair> p = lookForDispenserV2(reqs[i]); //!!STRANGE!!!
                         if(p.size() < min){
                             req = reqs[i];
                             min = p.size();
                         }
                     }
-            }
+                }
 
-            if(!req.equals("")){
-                sendMessage(perceptionHandler.makePercept("Bid", req, min), sender, getName());
-            }
-            else{
-                sendMessage(perceptionHandler.makePercept("Bid", "", -1), sender, getName());
-            }
+                if(!req.equals("")){
+                    sendMessage(perceptionHandler.makePercept("Bid", req, min), sender, getName());
+                }
+                else{
+                    sendMessage(perceptionHandler.makePercept("Bid", "", -1), sender, getName());
+                }
 
+            }
         }
 
         else if (message.getName().equals("Bid")) {
@@ -168,70 +180,89 @@ public class BasicAgent extends Agent {
             Map<String, Integer> bid = new HashMap<>();
             bid.put(bidKey, bidValue);
             bids.put(sender, bid);
-            say(bids.toString());
-            Map<String, String> award = new HashMap<>();
-            say("announced to: " + announcedTo.size());
+
+            Map<String, List<String>> award = new HashMap<>();
+
             if(bids.size() == announcedTo.size()){
-                
-                for(String agent : bids.keySet()){
-                    Map.Entry<String,Integer> entry = bids.get(agent).entrySet().iterator().next();
-                    if(entry.getKey().equals("") || award.containsValue(agent)){
-                        continue;
-                    }
-                    award.put(entry.getKey(), agent);
-                    for(String otherAgent : bids.keySet()){
-                        if(agent != otherAgent){
-                            Map.Entry<String,Integer> otherEntry = bids.get(otherAgent).entrySet().iterator().next();
-                            if(otherEntry.getKey().equals("") || entry.getKey() != otherEntry.getKey()){
-                                if(!award.containsValue(agent))
-                                    award.put(entry.getKey(), agent);
-                            }
-                            else if(entry.getValue() <= otherEntry.getValue()){
-                                if(!award.containsValue(agent))
-                                    award.put(entry.getKey(), agent);
-                            }
-                            else{
-                                if(!award.containsValue(otherAgent))
-                                    award.put(entry.getKey(), otherAgent);
+                say("Announced reqs: " + reqsAnn.toString());
+                say("Announced to: " + announcedTo.size());
+                say("Bids: " + bids.toString());
+                Set<String> reqsType = new HashSet<>();
+                for (var k : bids.keySet()){
+                    if(!bids.get(k).keySet().toArray()[0].toString().equals(""))
+                        reqsType.add(bids.get(k).keySet().toArray()[0].toString());
+                }
+
+                //say("REQS:::::::  " + reqsType.toString());
+
+                Map<String, List<String>> sameBids = new HashMap<>(); //store the agents that bidded to same requirement and compare them
+                for(var reqq : reqsType){
+                    List<String> agentsSame = bids.entrySet().stream().filter(a -> a.getValue().keySet().toArray()[0].toString().equals(reqq)).map(Map.Entry::getKey).collect(Collectors.toList());
+                    sameBids.put(reqq,agentsSame);
+                }
+
+                for(String requirem : reqsAnn){
+                    int min = 1000;
+                    String awardedAgent = "";
+                    say("SAME BIDS::: " + sameBids.toString());
+                    if(sameBids.get(requirem) != null){
+                        for(String agent : sameBids.get(requirem)){
+                            if(bids.get(agent).get(requirem) < min){
+                                min = bids.get(agent).get(requirem);
+                                awardedAgent = agent;
                             }
                         }
-
+                        if(award.containsKey(requirem)){
+                            List<String> as = award.get(requirem);
+                            as.add(awardedAgent);
+                            award.put(requirem, as);//update it
+                        }
+                        else{
+                            award.put(requirem, new ArrayList<String>(List.of(awardedAgent)));
+                        }
+                        sameBids.get(requirem).remove(awardedAgent);
+                        bids.remove(awardedAgent);
                     }
                 }
+
             }
-            say(award.toString());
-            Block rr = null;
+
             if(award.size()>0){
+                say("Awards: " + award.toString());
+
+                //award = < "b1" : ["A3"] ,
+                //          "b2" : ["A1","A2"],
+                //          "b3" : [] >
+
                 for(String awardedReq : award.keySet()){
-                    for(var r : requirements.keySet()){
-                        if(r.getType() == awardedReq){
-                            requirements.replace(r,true);
-                            rr = r;
+                    //reqToSend = [Block(b1,1,2)]
+                    //reqToSend = [Block(b2,-1,0) , Block(b2,0,2)]
+                    List<Block> reqToSend = requirements.keySet().stream().filter(req -> req.getType().equals(awardedReq) && !requirements.get(req)).collect(Collectors.toList());
+                    for(var req : reqToSend){
+                        if(award.get(awardedReq) != null && award.get(awardedReq).size()>0 && !award.get(awardedReq).get(0).equals("")){
+                            requirements.replace(req, true);
+                            sendMessage(perceptionHandler.makePercept("Award", awardedReq, req.getX(), req.getY()), award.get(awardedReq).remove(0), getName());
                         }
                     }
-                    sendMessage(perceptionHandler.makePercept("Award", activeTask.getName(), awardedReq, rr.getX(), rr.getY()), award.get(awardedReq), getName());
                 }
+                announcedTo.clear();
+                bids.clear();
+                reqsAnn.clear();
+                //award.clear();
             }
-            //maybe sent "" to the ones that didn't receive anything????
-
         }
 
         //Award
         else if (message.getName().equals("Award")) {
             List<Parameter> pars = message.getClonedParameters();
-            String taskReceived = ((Identifier) pars.get(0)).getValue(); //the task I was awarded
-            String awardedRequirement = ((Identifier) pars.get(1)).getValue(); //the requirement I was awarded
+            String awardedRequirement = ((Identifier) pars.get(0)).getValue(); //the requirement I was awarded
+            Integer reqDetailX = ((Numeral) pars.get(1)).getValue().intValue(); //the X detail of the requirement
+            Integer reqDetailY = ((Numeral) pars.get(2)).getValue().intValue(); //the Y detail of the requirement
 
-            activeTask = perceptionHandler.getTasks().stream().filter(p -> p.getName().equals(taskReceived)).findAny().get();
+            say("I GOT REQ: " + awardedRequirement + " (" + reqDetailX + "," + reqDetailY + ").");
 
-            for(var req : activeTask.getRequirements().keySet()){
-                if(req.getType() == awardedRequirement){
-                    requirement = req;
-                    break;
-                }
-
-            }
-
+            requirement = new Block(reqDetailX, reqDetailY, awardedRequirement);
+            state = State.Helping;
             helping = true;
         }
 
@@ -247,9 +278,10 @@ public class BasicAgent extends Agent {
 
         //PHASE 2 (Internal State) - Agent updates its internal state
         this.mapHandler.updateMap(perceptionHandler);//needs to check if lastAction was successful before updating...
-        
+
         //If Agent sees a teammate -> share relative positions!
         if (this.perceptionHandler.getTeammates().size() > 0) {
+            say("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!MET!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
             Map<String, IntegerPair> myInfo = new HashMap<>();
             for (var teamMate : this.perceptionHandler.getTeammates()) {
                 broadcast(perceptionHandler.makePercept("Locations",
@@ -291,57 +323,104 @@ public class BasicAgent extends Agent {
             case MovingToGoal:
                 return moveToGoal();
             case AtGoal:
-                requirements.replace(requirement, true);
-
-                //if you are an agent who needs help and there is still a requirement not done
-                if(activeTask.getRequirements().containsValue(false)){
-                    if(teamMatesTrans.size() > 0){
-                        for(var teamMate : teamMatesTrans.keySet()){
-                            //Block requirement = requirements.keySet().stream().findFirst().get();
-                            //TODO make a better percept for the requirement
-
-
-                            List<String> taskSpecs = new LinkedList<>();
-
-                            taskSpecs.add(activeTask.getName());
-                            //int i = 1;
-                            for(Map.Entry<Block,Boolean> req : activeTask.getRequirements().entrySet()){
-                                if(!req.getValue()){
-                                    taskSpecs.add(req.getKey().getType());
-                                }
-                            }
-
-                            String [] taskSpecsToSend = new String[taskSpecs.size()];
-                            taskSpecs.toArray(taskSpecsToSend);
-
-                            //send a message of format ["task1", "b2", "b3"]
-                            
-                            announcedTo.add(teamMate);
-                            sendMessage(perceptionHandler.makePercept("Announcement", taskSpecsToSend), teamMate, getName());
-                        }
-                    }
-                }
-
-                else if(activeTask.getRequirements().containsValue(false) == false){
-                    //check if help has arrived
-                    /*if(helpArrived){
-                        //create pattern and connect
-                    }
-                    else{
-                        //wait
-                    }*/
-                }
-
-                return new Action("skip");
-                
+                return trySubmition();
+            case Helping:
+                return doHelp();
+            case LookingForYou:
+                return lookForYou();
+            case GoingToYou:
+                return goToYou();
             case InPosition:
                 createPattern();
+                //remember to set helping = false...
         }
 
         return new Action("skip");
     }
 
     //##################################### HELPER FUNCTIONS #####################################################
+
+    private Action lookForYou(){
+        return new Action("skip");
+    }
+
+    private Action goToYou(){
+        return null;
+    }
+
+    private Action doHelp(){
+
+        List<Thing> attacheds = perceptionHandler.getAttached();
+
+        if(attacheds.size() > 0){
+            String d = coordinatesToDirection(new IntegerPair(attacheds.get(0).getX(), attacheds.get(0).getY()));
+            return new Action("detach", new Identifier(d));
+        }
+
+        //if(hasBlockAttached) -> drop it first
+        String detail = requirement.getType();
+        //Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
+        //check Null case in dispensers.. but unlikely... because agent is helping because he can...
+
+        if(activePath.isEmpty() || perceptionHandler.getFailed()){
+            activePath = lookForDispenserV2(detail); //action can be "move" if going for a dispenser | "request" if already near a dispenser | "attach" if we have requested a block from the dispenser || "null" if we haven't seen any dispenser yet
+            activePath.remove(0);
+        }
+        if(!dispenserOnMySide(detail).equals("")){
+            state = State.NearDispenser;
+            activePath = new LinkedList<>();
+            return requestBlock(detail);
+        }
+
+        return moveTo(activePath.remove(0));
+    }
+
+    private Action trySubmition(){
+        requirements.replace(requirement, true);
+
+        //if you are an agent who needs help and there is still a requirement not done
+        if(activeTask.getRequirements().containsValue(false)){
+
+            //!!!!!!!!!!!!!!!!!CHECK IF ALREADY ANNOUNCED TO AVOID KEEP ANNOUNCING WHILE WAITING.... JUST CHECK SIZE OF ANNOUNCEDTO!!!!!!!!!!!!!!
+
+            if(teamMatesTrans.size() > 0){
+                List<String> taskSpecs = new LinkedList<>();
+                taskSpecs.add(activeTask.getName());
+                //int i = 1;
+                for(Map.Entry<Block,Boolean> req : activeTask.getRequirements().entrySet()){
+                    if(!req.getValue()){
+                        taskSpecs.add(req.getKey().getType());
+                        reqsAnn.add(req.getKey().getType()); //ignore this but don't delete
+                    }
+                }
+                String [] taskSpecsToSend = new String[taskSpecs.size()];
+                taskSpecs.toArray(taskSpecsToSend);
+
+                for(var teamMate : teamMatesTrans.keySet()){
+                    //send a message of format ["task1", "b2", "b3"]
+                    announcedTo.add(teamMate);
+                    sendMessage(perceptionHandler.makePercept("Announcement", taskSpecsToSend), teamMate, getName());
+                }
+
+                /*for(int i=0; i<4; i++){
+                    announcedTo.add("agentA"+i);
+                }
+                broadcast(perceptionHandler.makePercept("Announcement", taskSpecsToSend), getName());*/
+            }
+        }
+
+        else if(activeTask.getRequirements().containsValue(false) == false){
+            //check if help has arrived
+                    /*if(helpArrived){
+                        //create pattern and connect
+                    }
+                    else{
+                        //wait
+                    }*/
+        }
+
+        return new Action("skip");
+    }
 
     private Map<String, Integer> weightTasks(){
         //check if I have seen all the types of blocks/dispensers specified in the requirements
@@ -357,7 +436,7 @@ public class BasicAgent extends Agent {
                 String detail = requirement.getKey().getType();
                 Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
                 if(!dispensers.isEmpty()){
-                    List<IntegerPair> p = lookForDispenserV2(detail);
+                    List<IntegerPair> p = lookForDispenserV2(detail);//!!STRANGE!!!
                     taskWeights.replace(task.getName(), taskWeights.get(task.getName()) + p.size());
                 }
             }
@@ -409,12 +488,6 @@ public class BasicAgent extends Agent {
                     return moveToDispenser(detail);
                 }
             }
-
-            //String detail = requirement.getType();
-            //MAYBE REMOVE THIS!!!!
-            //Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
-            //if(!dispensers.isEmpty()) return moveToDispenser(detail);
-            //SO THE STATE HAS CHANGED BUT IF DISPENSERS IS EMPTY??? THE STATE NEEDS TO GO BACK TO NORMAL
         }
         return explore();
     }
@@ -456,7 +529,10 @@ public class BasicAgent extends Agent {
             state = State.NearDispenser;
             return requestBlock(detail);
         }
-        state = State.MovingToGoal;
+        if(!helping)
+            state = State.MovingToGoal;
+        else
+            state = State.LookingForYou;
         return new Action("attach", new Identifier(blockDir));
     }
 
@@ -519,19 +595,19 @@ public class BasicAgent extends Agent {
                     The block are in the correct position relative to the main agent
                     connect blocks
                     helper detaches
-                    main agent submits    
+                    main agent submits
         */
         int patternCase = 0;
-        
+
         return new Action("skip");
     }
-    
+
     private List<IntegerPair> lookForDispenserV2(String detail){
         Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
-        if(dispensers.size() > 0){
+        if(dispensers != null && dispensers.size() > 0){
 
             List<IntegerPair> path = getShortestPathByType(CellType.Dispenser, detail);
-            if(path.size()>0){
+            if(path != null && path.size()>0){
                 return path;
             }
         }

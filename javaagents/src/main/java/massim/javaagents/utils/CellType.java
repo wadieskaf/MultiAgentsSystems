@@ -10,5 +10,4 @@ public enum CellType {
     Obstacle,
     Teammate,
     Unknown
-
 }

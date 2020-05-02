@@ -300,6 +300,10 @@ public class BasicAgent extends Agent {
             alreadySkipped = false;
         }
 
+       /* if (check()){
+            moveRandom();
+        } */
+
         //PHASE 3 (Deliberate) - Agent tries to figure out what is the best action to perform given his current state and his previous action
         step++;
         Action act = chooseAction();
@@ -721,36 +725,36 @@ public class BasicAgent extends Agent {
                     case "n":
                         if (nextStep.equals("e") || nextStep.equals("w")) {
                             if (nextStep.equals("e")) {
-                                direction = new IntegerPair(-1, -1);
+                                direction = new IntegerPair(1, -1);
                             } else {
-                                direction = new IntegerPair(-1, 1);
+                                direction = new IntegerPair(-1, -1);
                             }
                         }
                         break;
                     case "w":
                         if (nextStep.equals("n") || nextStep.equals("s")) {
                             if (nextStep.equals("n")){
-                                direction = new IntegerPair(-1,1);
+                                direction = new IntegerPair(-1,-1);
                             } else {
-                                direction = new IntegerPair(1,1);
+                                direction = new IntegerPair(-1,1);
                             }
                         }
                         break;
                     case "s":
                         if (nextStep.equals("w") || nextStep.equals("e")){
                             if (nextStep.equals("w")){
-                                direction = new IntegerPair(1,1);
+                                direction = new IntegerPair(-1,1);
                             } else {
-                                direction = new IntegerPair(1,-1);
+                                direction = new IntegerPair(1,1);
                             }
                         }
                         break;
                     case "e":
                         if (nextStep.equals("n") || nextStep.equals("s")){
                             if (nextStep.equals("n")){
-                                direction = new IntegerPair(-1,-1);
-                            } else {
                                 direction = new IntegerPair(1,-1);
+                            } else {
+                                direction = new IntegerPair(1,1);
                             }
                         }
                         break;
@@ -773,20 +777,20 @@ public class BasicAgent extends Agent {
         String details;
         CellType cellType;
         for(int i=0; i<this.mapHandler.getMap().length; i++){
-            for(int j=0;j<this.mapHandler.getMap()[0].length; j++){
+            for(int j=0;j<this.mapHandler.getMap()[i].length; j++){
                 Cell item = this.mapHandler.getCell(new IntegerPair(i,j));
                 cellType = item.getType();
                 if (cellType == CellType.Dispenser || cellType == CellType.Block){
                     cellClass = "Detailed";
                     details = ((DetailedCell)item).getDetails();
                     sendMessage(this.perceptionHandler.makePercept("MapSharing",
-                            cellType, cellClass,i,j, details)
+                            cellType.toString(), cellClass,i,j, details)
                             ,receiver, this.getName());
                 }
                 else {
                     cellClass = "Ordinal";
                     sendMessage(this.perceptionHandler.makePercept("MapSharing",
-                            cellType, cellClass,i,j),
+                            cellType.toString(), cellClass,i,j),
                             receiver, this.getName());
                 }
 

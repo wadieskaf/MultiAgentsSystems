@@ -52,6 +52,7 @@ public class BasicAgent extends Agent {
 
     //CONTROL THE HELPING PART
     private boolean helping = false;
+    String helpingWho = "";
 
     private List<String> reqsAnn = new LinkedList<>(); //ignore it but don't delete it
 
@@ -274,6 +275,7 @@ public class BasicAgent extends Agent {
             requirement = new Block(reqDetailX, reqDetailY, awardedRequirement);
             state = State.Helping;
             helping = true;
+            helpingWho = sender;
         }
 
         //Go
@@ -291,6 +293,7 @@ public class BasicAgent extends Agent {
             IntegerPair transformation = teamMatesTrans.get(sender);
             IntegerPair desiredLocation = teammateLocation.add(transformation);
 
+            state = State.GoingToYou;
             //GOTO this location
 
         }
@@ -381,13 +384,13 @@ public class BasicAgent extends Agent {
                 return trySubmition();
             case Helping:
                 return doHelp();
-            case LookingForYou:
-                return lookForYou();
             case GoingToYou:
                 return goToYou();
             case InPosition:
-                createPattern();
-                //remember to set helping = false...
+                activeActions = createPattern(helping, new IntegerPair(0,0) /* requirement place*/);
+                //remember to helping -> false
+            case BuildPattern:
+                return buildPattern();
         }
 
         return new Action("skip");
@@ -396,10 +399,13 @@ public class BasicAgent extends Agent {
     //##################################### HELPER FUNCTIONS #####################################################
 
     private Action lookForYou(){
+        sendMessage(perceptionHandler.makePercept("GO"), helpingWho, getName());
         return new Action("skip");
     }
 
     private Action goToYou(){
+        //call bfs on specific location and follow the path to it.
+        //when we arrive there -> change state to InPosition.
         return null;
     }
 
@@ -475,15 +481,8 @@ public class BasicAgent extends Agent {
         }
 
                 return new Action("skip");
-                
-            case InPosition:
-                activeActions = createPattern(helping, new IntegerPair(0,0) /* requirement place*/);
 
-            case BuildPattern:
-                return buildPattern();
-        }
 
-        return new Action("skip");
     }
 
     private Map<String, Integer> weightTasks(){
@@ -596,7 +595,8 @@ public class BasicAgent extends Agent {
         if(!helping)
             state = State.MovingToGoal;
         else
-            state = State.LookingForYou;
+            //state = State.LookingForYou;
+            sendMessage(perceptionHandler.makePercept("GO"), helpingWho, getName());
         return new Action("attach", new Identifier(blockDir));
     }
 

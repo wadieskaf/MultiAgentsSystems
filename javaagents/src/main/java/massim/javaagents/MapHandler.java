@@ -223,12 +223,14 @@ public class MapHandler {
     public void makeTransformation(IntegerPair transform, Cell item, IntegerPair location) {
         if (checkTransformation(location, transform)) {
             IntegerPair newLocation = location.add(transform);
-            this.map[newLocation.getX()][newLocation.getY()] = item;
-            if (item.getType() == CellType.Dispenser) {
-                dispensersTypeMap.put(newLocation, ((DetailedCell) item).getDetails());
-            }
-            if (item.getType() == CellType.Block) {
-                blocksTypeMap.put(newLocation, ((DetailedCell) item).getDetails());
+            if(map[newLocation.getX()][newLocation.getY()].getType() == CellType.Unknown){
+                this.map[newLocation.getX()][newLocation.getY()] = item;
+                if (item.getType() == CellType.Dispenser) {
+                    dispensersTypeMap.put(newLocation, ((DetailedCell) item).getDetails());
+                }
+                if (item.getType() == CellType.Block) {
+                    blocksTypeMap.put(newLocation, ((DetailedCell) item).getDetails());
+                }
             }
         }
     }

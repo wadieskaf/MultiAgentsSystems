@@ -122,6 +122,7 @@ public class BasicAgent extends Agent {
                         IntegerPair transform = this.mapHandler.getTeammateTransfer(teammateRelativeLocation,teammateLocation);
                         if(!teamMatesTrans.containsKey(sender)) {
                             this.teamMatesTrans.put(sender, transform);
+                            say(sender + " in my memory.");
                             sendMessage(perceptionHandler.makePercept("ReadyToShare"), sender, getName());
                         }
                         break;
@@ -298,6 +299,31 @@ public class BasicAgent extends Agent {
 
         }
         else if(message.getName().equals("MapSharing")){
+            ParameterList cellsPercept = (ParameterList)message.getParameters().get(0);
+            List<Cell> cells = new ArrayList<>();
+            List<IntegerPair> cellLocations = new ArrayList<>();
+            for(var c : cellsPercept){
+                Function cellPercept = (Function)c;
+                List<Parameter> pars = cellPercept.getClonedParameters();
+                CellType cellType = CellType.valueOf(((Identifier)pars.get(0)).getValue());
+                String cellClass = ((Identifier)pars.get(1)).getValue();
+                IntegerPair cellLocation = new IntegerPair(((Numeral) pars.get(2)).getValue().intValue(),
+                        ((Numeral) pars.get(3)).getValue().intValue());
+                Cell cell;
+                if (cellClass == "Detailed"){
+                    String details = ((Identifier)pars.get(4)).getValue();
+                    cell = new DetailedCell(cellType, details);
+                } else {
+                    cell = new OrdinaryCell(cellType);
+                }
+                cells.add(cell);
+                cellLocations.add(cellLocation);
+            }
+            IntegerPair transform = teamMatesTrans.get(sender);
+            Boolean success = mapHandler.shareMap(transform, cells, cellLocations);
+            if(success) say(sender + " shared his map with me");
+            else say(sender + " didn't share his map with me");
+            /*
             List<Parameter> pars = message.getClonedParameters();
             CellType cellType = CellType.valueOf(((Identifier)pars.get(0)).getValue());
             String cellClass = ((Identifier)pars.get(1)).getValue();
@@ -311,7 +337,7 @@ public class BasicAgent extends Agent {
                 cell = new OrdinaryCell(cellType);
             }
             IntegerPair transform = this.teamMatesTrans.get(sender);
-            this.mapHandler.makeTransformation(transform, cell, cellLocation);
+            this.mapHandler.makeTransformation(transform, cell, cellLocation);*/
             mapHandler.printMapToFile("maps\\" + getName() + "mapSharedWith" + sender + ".txt");
         }
 
@@ -333,8 +359,7 @@ public class BasicAgent extends Agent {
 
         //If Agent sees a teammate -> share relative positions!
         if (this.perceptionHandler.getTeammates().size() > 0) {
-            say("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!MET!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            Map<String, IntegerPair> myInfo = new HashMap<>();
+            //say("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!MET!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
             for (var teamMate : this.perceptionHandler.getTeammates()) {
                 broadcast(perceptionHandler.makePercept("Locations",
                         teamMate.getX(), teamMate.getY(), this.mapHandler.getAgentLocation().getX(),
@@ -421,7 +446,7 @@ public class BasicAgent extends Agent {
 
         if(attacheds.size() > 0){
             String d = coordinatesToDirection(new IntegerPair(attacheds.get(0).getX(), attacheds.get(0).getY()));
-            return new Action("detach", new Identifier(d));
+            if(!d.equals(""))return new Action("detach", new Identifier(d));
         }
 
         //if(hasBlockAttached) -> drop it first
@@ -947,30 +972,31 @@ public class BasicAgent extends Agent {
     }
 
     private void shareMap(String receiver){
-        String cellClass;
-        String details;
-        CellType cellType;
-        for(int i=0; i<this.length; i++){
-            for(int j=0;j<this.width; j++){
-                Cell item = this.mapHandler.getCell(new IntegerPair(i,j));
+        List<Percept> cells = new LinkedList<>();
+        for (int i = 0; i < this.length; i++) {
+            for (int j = 0; j < this.width; j++) {
+                Cell item = this.mapHandler.getCell(new IntegerPair(i, j));
+                CellType cellType;
                 cellType = item.getType();
-                if(cellType.equals(CellType.Unknown)) continue;
-                if (cellType == CellType.Dispenser || cellType == CellType.Block){
+                if (cellType.equals(CellType.Unknown) || cellType.equals(CellType.Teammate)) continue;
+                String cellClass;
+                String details;
+                if (cellType == CellType.Dispenser || cellType == CellType.Block) {
                     cellClass = "Detailed";
-                    details = ((DetailedCell)item).getDetails();
-                    sendMessage(this.perceptionHandler.makePercept("MapSharing",
-                            cellType.toString(), cellClass,i,j, details)
-                            ,receiver, this.getName());
-                }
-                else {
+                    details = ((DetailedCell) item).getDetails();
+                } else {
                     cellClass = "Ordinal";
-                    sendMessage(this.perceptionHandler.makePercept("MapSharing",
-                            cellType.toString(), cellClass,i,j),
-                            receiver, this.getName());
+                    details = "";
                 }
-
+                /*sendMessage(this.perceptionHandler.makePercept("MapSharing",
+                        cellType.toString(), cellClass, i, j, details)
+                        , receiver, this.getName());*/
+                Percept c = this.perceptionHandler.makePercept("Cell",
+                            cellType.toString(), cellClass, i, j, details);
+                cells.add(c);
             }
         }
+        sendMessage(perceptionHandler.makePercept("MapSharing", cells), receiver, getName());
     }
 
 }

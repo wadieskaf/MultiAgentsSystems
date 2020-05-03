@@ -100,16 +100,16 @@ public class MapHandler {
         return dispensersTypeMap;
     }
 
-    public void initiateMap(int length, int width, IntegerPair agentMovement) {
+    public void initiateMap(int length, int width, IntegerPair agentLocation) {
         this.length = length;
         this.width = width;
         this.map = new Cell[length][width];
         for (var row : map) {
             Arrays.fill(row, new OrdinaryCell(CellType.Unknown));
         }
-        this.agentLocation = agentMovement;
-        int x = agentMovement.getX();
-        int y = agentMovement.getY();
+        this.agentLocation = agentLocation;
+        int x = agentLocation.getX();
+        int y = agentLocation.getY();
         //map[x][y] = new OrdinaryCell(CellType.Agent);
     }
 

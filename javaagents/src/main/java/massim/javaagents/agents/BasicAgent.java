@@ -22,7 +22,7 @@ import massim.javaagents.utils.*;
 
 
 public class BasicAgent extends Agent {
-    private enum State{Exploring, MovingToDispenser, NearDispenser, NearBlock, MovingToGoal, AtGoal, InPosition, Helping, BuildPattern, LookingForYou, GoingToYou}
+    private enum State {Exploring, MovingToDispenser, NearDispenser, NearBlock, MovingToGoal, AtGoal, InPosition, Helping, BuildPattern, LookingForYou, GoingToYou}
 
 
     private MapHandler mapHandler;
@@ -58,6 +58,7 @@ public class BasicAgent extends Agent {
 
     /**
      * Constructor.
+     *
      * @param name    the agent's name
      * @param mailbox the mail facility
      */
@@ -67,9 +68,9 @@ public class BasicAgent extends Agent {
         this.agent_y = 49;
         this.length = 100;
         this.width = 100;
-        this.agentMovement = new IntegerPair(0,0);
+        this.agentMovement = new IntegerPair(0, 0);
         this.mapHandler = new MapHandler();
-        this.mapHandler.initiateMap(this.length,this.width, new IntegerPair(this.agent_x,this.agent_y));
+        this.mapHandler.initiateMap(this.length, this.width, new IntegerPair(this.agent_x, this.agent_y));
         this.activeTask = null;
         this.activeRequirement = null;
         this.action = null;
@@ -88,7 +89,8 @@ public class BasicAgent extends Agent {
 
 
     @Override
-    public void handlePercept(Percept percept) {}
+    public void handlePercept(Percept percept) {
+    }
 
     @Override
     public void handleMessage(Percept message, String sender) {
@@ -115,12 +117,12 @@ public class BasicAgent extends Agent {
                     ((Numeral) pars.get(3)).getValue().intValue());
             IntegerPair possibleRelativeLocation = new IntegerPair(-1 * ((Numeral) pars.get(0)).getValue().intValue(),
                     -1 * ((Numeral) pars.get(1)).getValue().intValue());
-            if(perceptionHandler != null){
-                for(var teammate: this.perceptionHandler.getTeammates()){
+            if (perceptionHandler != null) {
+                for (var teammate : this.perceptionHandler.getTeammates()) {
                     IntegerPair teammateRelativeLocation = new IntegerPair(teammate.getX(), teammate.getY());
-                    if (possibleRelativeLocation.equals(teammateRelativeLocation)){
-                        IntegerPair transform = this.mapHandler.getTeammateTransfer(teammateRelativeLocation,teammateLocation);
-                        if(!teamMatesTrans.containsKey(sender)) {
+                    if (possibleRelativeLocation.equals(teammateRelativeLocation)) {
+                        IntegerPair transform = this.mapHandler.getTeammateTransfer(teammateRelativeLocation, teammateLocation);
+                        if (!teamMatesTrans.containsKey(sender)) {
                             this.teamMatesTrans.put(sender, transform);
                             sendMessage(perceptionHandler.makePercept("ReadyToShare"), sender, getName());
                         }
@@ -128,60 +130,51 @@ public class BasicAgent extends Agent {
                     }
                 }
             }
-        }
-
-        else if(message.getName().equals("ReadyToShare")){
+        } else if (message.getName().equals("ReadyToShare")) {
             shareMap(sender);
-        }
-
-        else if(message.getName().equals("Announcement")){
+        } else if (message.getName().equals("Announcement")) {
 
             List<Parameter> pars = message.getClonedParameters();
-            String[] reqs = new String[pars.size()-1];
+            String[] reqs = new String[pars.size() - 1];
 
             String taskReceived = ((Identifier) pars.get(0)).getValue();
             Task t = perceptionHandler.getTasks().stream().filter(p -> p.getName().equals(taskReceived)).findAny().get();
 
-            if(state.equals(State.Helping)){
+            if (state.equals(State.Helping)) {
                 //Already Helping, sorry
-            }
-            else if(activeTask.getDeadLine() < t.getDeadLine()){
+            } else if (activeTask.getDeadLine() < t.getDeadLine()) {
                 //Sorry, my task is almost done, I need to finish it.
                 say("Better time!");
-            }
-            else{
+            } else {
                 say("Your : " + t.getDeadLine() + " is better than mine: " + activeTask.getDeadLine() + ", so I got U :)");
                 //say("Ok, got u!");
                 //Ok, I am not helping anyone....or....I your task is going to be finished sooner, let me help....or... I'm not doing anything
                 for (int i = 0; i < reqs.length; i++) {
-                    reqs[i] = ((Identifier) pars.get(i+1)).getValue();
+                    reqs[i] = ((Identifier) pars.get(i + 1)).getValue();
                 }
 
                 String req = "";
                 int min = 1000;
 
-                for(int i=0; i<reqs.length; i++){
+                for (int i = 0; i < reqs.length; i++) {
                     Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(reqs[i]);
-                    if(!dispensers.isEmpty()){
+                    if (!dispensers.isEmpty()) {
                         List<IntegerPair> p = lookForDispenserV2(reqs[i]); //!!STRANGE!!!
-                        if(p.size() < min){
+                        if (p.size() < min) {
                             req = reqs[i];
                             min = p.size();
                         }
                     }
                 }
 
-                if(!req.equals("")){
+                if (!req.equals("")) {
                     sendMessage(perceptionHandler.makePercept("Bid", req, min), sender, getName());
-                }
-                else{
+                } else {
                     sendMessage(perceptionHandler.makePercept("Bid", "", -1), sender, getName());
                 }
 
             }
-        }
-
-        else if (message.getName().equals("Bid")) {
+        } else if (message.getName().equals("Bid")) {
             //say("From " + sender + ": " + message.getParameters().toString());
             List<Parameter> pars = message.getClonedParameters();
 
@@ -194,41 +187,40 @@ public class BasicAgent extends Agent {
 
             Map<String, List<String>> award = new HashMap<>();
 
-            if(bids.size() == announcedTo.size()){
+            if (bids.size() == announcedTo.size()) {
                 say("Announced reqs: " + reqsAnn.toString());
                 say("Announced to: " + announcedTo.size());
                 say("Bids: " + bids.toString());
                 Set<String> reqsType = new HashSet<>();
-                for (var k : bids.keySet()){
-                    if(!bids.get(k).keySet().toArray()[0].toString().equals(""))
+                for (var k : bids.keySet()) {
+                    if (!bids.get(k).keySet().toArray()[0].toString().equals(""))
                         reqsType.add(bids.get(k).keySet().toArray()[0].toString());
                 }
 
                 //say("REQS:::::::  " + reqsType.toString());
 
                 Map<String, List<String>> sameBids = new HashMap<>(); //store the agents that bidded to same requirement and compare them
-                for(var reqq : reqsType){
+                for (var reqq : reqsType) {
                     List<String> agentsSame = bids.entrySet().stream().filter(a -> a.getValue().keySet().toArray()[0].toString().equals(reqq)).map(Map.Entry::getKey).collect(Collectors.toList());
-                    sameBids.put(reqq,agentsSame);
+                    sameBids.put(reqq, agentsSame);
                 }
 
-                for(String requirem : reqsAnn){
+                for (String requirem : reqsAnn) {
                     int min = 1000;
                     String awardedAgent = "";
                     say("SAME BIDS::: " + sameBids.toString());
-                    if(sameBids.get(requirem) != null){
-                        for(String agent : sameBids.get(requirem)){
-                            if(bids.get(agent).get(requirem) < min){
+                    if (sameBids.get(requirem) != null) {
+                        for (String agent : sameBids.get(requirem)) {
+                            if (bids.get(agent).get(requirem) < min) {
                                 min = bids.get(agent).get(requirem);
                                 awardedAgent = agent;
                             }
                         }
-                        if(award.containsKey(requirem)){
+                        if (award.containsKey(requirem)) {
                             List<String> as = award.get(requirem);
                             as.add(awardedAgent);
                             award.put(requirem, as);//update it
-                        }
-                        else{
+                        } else {
                             award.put(requirem, new ArrayList<String>(List.of(awardedAgent)));
                         }
                         sameBids.get(requirem).remove(awardedAgent);
@@ -238,19 +230,19 @@ public class BasicAgent extends Agent {
 
             }
 
-            if(award.size()>0){
+            if (award.size() > 0) {
                 say("Awards: " + award.toString());
 
                 //award = < "b1" : ["A3"] ,
                 //          "b2" : ["A1","A2"],
                 //          "b3" : [] >
 
-                for(String awardedReq : award.keySet()){
+                for (String awardedReq : award.keySet()) {
                     //reqToSend = [Block(b1,1,2)]
                     //reqToSend = [Block(b2,-1,0) , Block(b2,0,2)]
                     List<Block> reqToSend = requirements.keySet().stream().filter(req -> req.getType().equals(awardedReq) && !requirements.get(req)).collect(Collectors.toList());
-                    for(var req : reqToSend){
-                        if(award.get(awardedReq) != null && award.get(awardedReq).size()>0 && !award.get(awardedReq).get(0).equals("")){
+                    for (var req : reqToSend) {
+                        if (award.get(awardedReq) != null && award.get(awardedReq).size() > 0 && !award.get(awardedReq).get(0).equals("")) {
                             requirements.replace(req, true);
                             sendMessage(perceptionHandler.makePercept("Award", awardedReq, req.getX(), req.getY()), award.get(awardedReq).remove(0), getName());
                         }
@@ -279,14 +271,14 @@ public class BasicAgent extends Agent {
         }
 
         //Go
-        else if (message.getName().equals("GO")){
+        else if (message.getName().equals("GO")) {
 
             sendMessage(perceptionHandler.makePercept("HERE", this.mapHandler.getAgentLocation().getX(),
                     this.mapHandler.getAgentLocation().getY()), sender, this.getName());
 
         }
         //HERE
-        else if (message.getName().equals("HERE")){
+        else if (message.getName().equals("HERE")) {
             List<Parameter> pars = message.getClonedParameters();
             IntegerPair teammateLocation = new IntegerPair(((Numeral) pars.get(0)).getValue().intValue(),
                     ((Numeral) pars.get(1)).getValue().intValue());
@@ -296,16 +288,15 @@ public class BasicAgent extends Agent {
             state = State.GoingToYou;
             //GOTO this location
 
-        }
-        else if(message.getName().equals("MapSharing")){
+        } else if (message.getName().equals("MapSharing")) {
             List<Parameter> pars = message.getClonedParameters();
-            CellType cellType = CellType.valueOf(((Identifier)pars.get(0)).getValue());
-            String cellClass = ((Identifier)pars.get(1)).getValue();
+            CellType cellType = CellType.valueOf(((Identifier) pars.get(0)).getValue());
+            String cellClass = ((Identifier) pars.get(1)).getValue();
             IntegerPair cellLocation = new IntegerPair(((Numeral) pars.get(2)).getValue().intValue(),
                     ((Numeral) pars.get(3)).getValue().intValue());
             Cell cell;
-            if (cellClass == "Detailed"){
-                String details = ((Identifier)pars.get(4)).getValue();
+            if (cellClass.equals("Detailed")) {
+                String details = ((Identifier) pars.get(4)).getValue();
                 cell = new DetailedCell(cellType, details);
             } else {
                 cell = new OrdinaryCell(cellType);
@@ -341,7 +332,7 @@ public class BasicAgent extends Agent {
                         this.mapHandler.getAgentLocation().getY()),
                         getName());
             }
-            if(!alreadySkipped){
+            if (!alreadySkipped) {
                 alreadySkipped = true;
                 return new Action("skip");
             }
@@ -364,7 +355,7 @@ public class BasicAgent extends Agent {
         Action act = chooseAction();
 
         //PHASE 4 (ACT) - Execute chosen action to achieve goal
-        return  act;
+        return act;
     }
 
 
@@ -374,7 +365,7 @@ public class BasicAgent extends Agent {
         //ALSO CHECK WHEN TASKS ARE HANDLED... HOW TO MARK THEM SO THAT AGENTS THAT DIDN'T RECEIVE ANYTHING DON'T INTERFEER....
 
 
-        switch(state){
+        switch (state) {
             case Exploring:
                 return doExplore();
             case MovingToDispenser:
@@ -392,7 +383,7 @@ public class BasicAgent extends Agent {
             case GoingToYou:
                 return goToYou();
             case InPosition:
-                activeActions = createPattern(helping, new IntegerPair(0,0) /* requirement place*/);
+                activeActions = createPattern(helping, new IntegerPair(0, 0) /* requirement place*/);
                 //remember to helping -> false
             case BuildPattern:
                 return buildPattern();
@@ -403,23 +394,23 @@ public class BasicAgent extends Agent {
 
     //##################################### HELPER FUNCTIONS #####################################################
 
-    private Action lookForYou(){
+    private Action lookForYou() {
         sendMessage(perceptionHandler.makePercept("GO"), helpingWho, getName());
         return new Action("skip");
     }
 
-    private Action goToYou(){
+    private Action goToYou() {
         //call bfs on specific location and follow the path to it.
         //when we arrive there -> change state to InPosition.
         say("im going yaaay");
         return new Action("skip");
     }
 
-    private Action doHelp(){
+    private Action doHelp() {
 
         List<Thing> attacheds = perceptionHandler.getAttached();
 
-        if(attacheds.size() > 0){
+        if (attacheds.size() > 0) {
             String d = coordinatesToDirection(new IntegerPair(attacheds.get(0).getX(), attacheds.get(0).getY()));
             return new Action("detach", new Identifier(d));
         }
@@ -429,11 +420,11 @@ public class BasicAgent extends Agent {
         //Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
         //check Null case in dispensers.. but unlikely... because agent is helping because he can...
 
-        if(activePath.isEmpty() || perceptionHandler.getFailed()){
+        if (activePath.isEmpty() || perceptionHandler.getFailed()) {
             activePath = lookForDispenserV2(detail); //action can be "move" if going for a dispenser | "request" if already near a dispenser | "attach" if we have requested a block from the dispenser || "null" if we haven't seen any dispenser yet
             activePath.remove(0);
         }
-        if(!dispenserOnMySide(detail).equals("")){
+        if (!dispenserOnMySide(detail).equals("")) {
             state = State.NearDispenser;
             activePath = new LinkedList<>();
             return requestBlock(detail);
@@ -442,28 +433,28 @@ public class BasicAgent extends Agent {
         return moveTo(activePath.remove(0));
     }
 
-    private Action trySubmition(){
+    private Action trySubmition() {
         requirements.replace(requirement, true);
 
         //if you are an agent who needs help and there is still a requirement not done
-        if(activeTask.getRequirements().containsValue(false)){
+        if (activeTask.getRequirements().containsValue(false)) {
 
             //!!!!!!!!!!!!!!!!!CHECK IF ALREADY ANNOUNCED TO AVOID KEEP ANNOUNCING WHILE WAITING.... JUST CHECK SIZE OF ANNOUNCEDTO!!!!!!!!!!!!!!
 
-            if(teamMatesTrans.size() > 0){
+            if (teamMatesTrans.size() > 0) {
                 List<String> taskSpecs = new LinkedList<>();
                 taskSpecs.add(activeTask.getName());
                 //int i = 1;
-                for(Map.Entry<Block,Boolean> req : activeTask.getRequirements().entrySet()){
-                    if(!req.getValue()){
+                for (Map.Entry<Block, Boolean> req : activeTask.getRequirements().entrySet()) {
+                    if (!req.getValue()) {
                         taskSpecs.add(req.getKey().getType());
                         reqsAnn.add(req.getKey().getType()); //ignore this but don't delete
                     }
                 }
-                String [] taskSpecsToSend = new String[taskSpecs.size()];
+                String[] taskSpecsToSend = new String[taskSpecs.size()];
                 taskSpecs.toArray(taskSpecsToSend);
 
-                for(var teamMate : teamMatesTrans.keySet()){
+                for (var teamMate : teamMatesTrans.keySet()) {
                     //send a message of format ["task1", "b2", "b3"]
                     announcedTo.add(teamMate);
                     sendMessage(perceptionHandler.makePercept("Announcement", taskSpecsToSend), teamMate, getName());
@@ -474,9 +465,7 @@ public class BasicAgent extends Agent {
                 }
                 broadcast(perceptionHandler.makePercept("Announcement", taskSpecsToSend), getName());*/
             }
-        }
-
-        else if(activeTask.getRequirements().containsValue(false) == false){
+        } else if (activeTask.getRequirements().containsValue(false) == false) {
             //check if help has arrived
                     /*if(helpArrived){
                         //create pattern and connect
@@ -486,25 +475,25 @@ public class BasicAgent extends Agent {
                     }*/
         }
 
-                return new Action("skip");
+        return new Action("skip");
 
 
     }
 
-    private Map<String, Integer> weightTasks(){
+    private Map<String, Integer> weightTasks() {
         //check if I have seen all the types of blocks/dispensers specified in the requirements
         List<Task> tasks = this.perceptionHandler.getTasks();
         Map<String, Integer> taskWeights = new HashMap<>();
         //int [] taskWeights = new int[tasks.size()];
-        for(var task : tasks){
+        for (var task : tasks) {
             taskWeights.put(task.getName(), -1);
         }
 
-        for(Task task : tasks){
-            for (Map.Entry<Block,Boolean> requirement : task.getRequirements().entrySet()){
+        for (Task task : tasks) {
+            for (Map.Entry<Block, Boolean> requirement : task.getRequirements().entrySet()) {
                 String detail = requirement.getKey().getType();
                 Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
-                if(!dispensers.isEmpty()){
+                if (!dispensers.isEmpty()) {
                     List<IntegerPair> p = lookForDispenserV2(detail);//!!STRANGE!!!
                     taskWeights.replace(task.getName(), taskWeights.get(task.getName()) + p.size());
                 }
@@ -514,9 +503,9 @@ public class BasicAgent extends Agent {
     }
 
 
-    private Task chooseAvailableTask(){
+    private Task chooseAvailableTask() {
         myTaskWeights = weightTasks();
-        for(var task : myTaskWeights.keySet()){
+        for (var task : myTaskWeights.keySet()) {
             Whiteboard.putWeigth(getName(), task, myTaskWeights.get(task));
         }
 
@@ -527,20 +516,20 @@ public class BasicAgent extends Agent {
 
         //say("All assigned Tasks: " + Whiteboard.getAllAssigned().toString());
 
-        for(var task : perceptionHandler.getTasks()){
-            if(taskAssigned.equals(task.getName()))
+        for (var task : perceptionHandler.getTasks()) {
+            if (taskAssigned.equals(task.getName()))
                 return task;
         }
 
         return null;
     }
 
-    private Action doExplore(){
+    private Action doExplore() {
         List<Task> tasks = this.perceptionHandler.getTasks();
-        if(!tasks.isEmpty()){
-            if(activeTask == null){
+        if (!tasks.isEmpty()) {
+            if (activeTask == null) {
                 activeTask = chooseAvailableTask();
-                if(activeTask == null){
+                if (activeTask == null) {
                     return explore();
                 }
             }
@@ -548,10 +537,10 @@ public class BasicAgent extends Agent {
             //requirement = activeTask.getRequirement();
             //TODO check this part
             requirements = activeTask.getRequirements();
-            for(Map.Entry<Block,Boolean> req : requirements.entrySet()){
+            for (Map.Entry<Block, Boolean> req : requirements.entrySet()) {
                 String detail = req.getKey().getType();
                 Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
-                if(!dispensers.isEmpty()){
+                if (!dispensers.isEmpty()) {
                     state = State.MovingToDispenser;
                     requirement = req.getKey();
                     return moveToDispenser(detail);
@@ -561,12 +550,12 @@ public class BasicAgent extends Agent {
         return explore();
     }
 
-    private Action moveToDispenser(String detail){
-        if(activePath.isEmpty() || activePath == null || perceptionHandler.getFailed()){
+    private Action moveToDispenser(String detail) {
+        if (activePath.isEmpty() || activePath == null || perceptionHandler.getFailed()) {
             activePath = lookForDispenserV2(detail); //action can be "move" if going for a dispenser | "request" if already near a dispenser | "attach" if we have requested a block from the dispenser || "null" if we haven't seen any dispenser yet
             activePath.remove(0);
         }
-        if(!dispenserOnMySide(detail).equals("")){
+        if (!dispenserOnMySide(detail).equals("")) {
             state = State.NearDispenser;
             activePath = new LinkedList<>();
             return requestBlock(detail);
@@ -574,16 +563,16 @@ public class BasicAgent extends Agent {
         return moveTo(activePath.remove(0));
     }
 
-    private Action requestBlock(String detail){
+    private Action requestBlock(String detail) {
         String direction = dispenserOnMySide(detail);
         String blockDir = blockOnMySide(detail);
 
-        if(!blockDir.equals("")){
+        if (!blockDir.equals("")) {
             state = State.NearBlock;
             return attachBlock(detail);
         }
 
-        if(direction.equals("")){
+        if (direction.equals("")) {
             state = State.Exploring;
             activeTask = null;
             requirement = null;
@@ -592,13 +581,13 @@ public class BasicAgent extends Agent {
         return new Action("request", new Identifier(direction));
     }
 
-    private Action attachBlock(String detail){
+    private Action attachBlock(String detail) {
         String blockDir = blockOnMySide(detail);
-        if(blockDir.equals("")){
+        if (blockDir.equals("")) {
             state = State.NearDispenser;
             return requestBlock(detail);
         }
-        if(!helping)
+        if (!helping)
             state = State.MovingToGoal;
         else
             //state = State.LookingForYou;
@@ -606,22 +595,22 @@ public class BasicAgent extends Agent {
         return new Action("attach", new Identifier(blockDir));
     }
 
-    private Action moveToGoal(){
-        if(isGoal()){
+    private Action moveToGoal() {
+        if (isGoal()) {
             state = State.AtGoal;
             //return trySubmition();
             return new Action("skip");
         }
         List<IntegerPair> goals = mapHandler.getGoalList();
-        if(goals.isEmpty()){
+        if (goals.isEmpty()) {
             return explore();
         }
-        if(activePath.isEmpty()){
+        if (activePath.isEmpty()) {
             activePath = getShortestPathByType(CellType.Goal, "");
             activePath.remove(0);
         }
         //in case we our attached block gets stuck
-        if(perceptionHandler.getFailed()){
+        if (perceptionHandler.getFailed()) {
             activePath = new LinkedList<>();
             return moveRandom();
         }
@@ -629,14 +618,14 @@ public class BasicAgent extends Agent {
     }
 
     @Deprecated
-    private Action submit(){
+    private Action submit() {
         List<Thing> attacheds = perceptionHandler.getAttached();
-        if(attacheds.isEmpty()){
+        if (attacheds.isEmpty()) {
             state = State.MovingToDispenser;
             explore();
         }
         Thing attached = attacheds.get(0);
-        if(attached.getX() != requirement.getX() || attached.getY() != requirement.getY()){
+        if (attached.getX() != requirement.getX() || attached.getY() != requirement.getY()) {
             return new Action("rotate", new Identifier("cw"));
         }
         state = State.Exploring;
@@ -644,7 +633,7 @@ public class BasicAgent extends Agent {
     }
 
 
-    private List<Action> createPattern(boolean amHelping, IntegerPair blockPlacement){
+    private List<Action> createPattern(boolean amHelping, IntegerPair blockPlacement) {
         //TODO Connect shit (ADAM)
         //Preconds: 2 blocks/task, help is here, the agent needing help has the first requirement under him, helper on his right side with other block under him.
         /*
@@ -671,55 +660,53 @@ public class BasicAgent extends Agent {
                     main agent submits
         */
         int patternCase = 0;
-        if((amHelping && blockPlacement.equals(new IntegerPair(1,1)))
-            || (!amHelping && activeTask.getRequrementList().get(1).equals(new IntegerPair(1,1))) ){//check the helper's requirement (we can compare a block with an integerPair)
+        if ((amHelping && blockPlacement.equals(new IntegerPair(1, 1)))
+                || (!amHelping && activeTask.getRequrementList().get(1).equals(new IntegerPair(1, 1)))) {//check the helper's requirement (we can compare a block with an integerPair)
             patternCase = 1;
-        }
-        else if((amHelping && blockPlacement.equals(new IntegerPair(0,1)))
-                || (!amHelping && blockPlacement.equals(new IntegerPair(1, 1))) ){
+        } else if ((amHelping && blockPlacement.equals(new IntegerPair(0, 1)))
+                || (!amHelping && blockPlacement.equals(new IntegerPair(1, 1)))) {
             patternCase = 2;
-        }
-        else{
+        } else {
             patternCase = 3;
         }
         state = State.BuildPattern;
 
-        switch(patternCase){
+        switch (patternCase) {
             case 1:
-                if(amHelping) return List.of(
-                    new Action("connect", new Identifier("main agent"), new Numeral(0),new Numeral(1)),
-                    new Action("detach", new Identifier("s"))
+                if (amHelping) return List.of(
+                        new Action("connect", new Identifier("main agent"), new Numeral(0), new Numeral(1)),
+                        new Action("detach", new Identifier("s"))
                 );
                 return List.of(
-                    new Action("connect", new Identifier("helper"), new Numeral(0), new Numeral(1)),
-                    new Action("skip"),
-                    new Action("submit", new Identifier(activeTask.getName()))
+                        new Action("connect", new Identifier("helper"), new Numeral(0), new Numeral(1)),
+                        new Action("skip"),
+                        new Action("submit", new Identifier(activeTask.getName()))
                 );
             case 2:
-                if(amHelping) return List.of(
-                    new Action("connect", new Identifier("main agent"), new Numeral(0),new Numeral(1)),
-                    new Action("skip"),
-                    new Action("submit", new Identifier("{taskName}"))
+                if (amHelping) return List.of(
+                        new Action("connect", new Identifier("main agent"), new Numeral(0), new Numeral(1)),
+                        new Action("skip"),
+                        new Action("submit", new Identifier("{taskName}"))
                 );
                 return List.of(
-                    new Action("connect", new Identifier("helper"), new Numeral(0), new Numeral(1)),
-                    new Action("detach", new Identifier("s"))
+                        new Action("connect", new Identifier("helper"), new Numeral(0), new Numeral(1)),
+                        new Action("detach", new Identifier("s"))
                 );
             case 3:
-                if(amHelping) return List.of(
-                    new Action("move", new Identifier("s")),
-                    new Action("move", new Identifier("s")),
-                    new Action("rotate", new Identifier("cw")),
-                    new Action("connect", new Identifier("main agent"), new Numeral(-1),new Numeral(0)),
-                    new Action("detach", new Identifier("w"))
+                if (amHelping) return List.of(
+                        new Action("move", new Identifier("s")),
+                        new Action("move", new Identifier("s")),
+                        new Action("rotate", new Identifier("cw")),
+                        new Action("connect", new Identifier("main agent"), new Numeral(-1), new Numeral(0)),
+                        new Action("detach", new Identifier("w"))
                 );
                 return List.of(
-                    new Action("skip"),
-                    new Action("skip"),
-                    new Action("skip"),
-                    new Action("connect", new Identifier("helper"), new Numeral(0), new Numeral(1)),
-                    new Action("skip"),
-                    new Action("submit", new Identifier(activeTask.getName()))
+                        new Action("skip"),
+                        new Action("skip"),
+                        new Action("skip"),
+                        new Action("connect", new Identifier("helper"), new Numeral(0), new Numeral(1)),
+                        new Action("skip"),
+                        new Action("submit", new Identifier(activeTask.getName()))
                 );
         }
 
@@ -727,20 +714,20 @@ public class BasicAgent extends Agent {
         return List.of(new Action("skip"));
     }
 
-    private Action buildPattern(){
-        if(activeActions.isEmpty()){
+    private Action buildPattern() {
+        if (activeActions.isEmpty()) {
             state = State.Exploring;
             return new Action("skip");
         }
         return activeActions.remove(0);
     }
 
-    private List<IntegerPair> lookForDispenserV2(String detail){
+    private List<IntegerPair> lookForDispenserV2(String detail) {
         Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
-        if(dispensers != null && dispensers.size() > 0){
+        if (dispensers != null && dispensers.size() > 0) {
 
             List<IntegerPair> path = getShortestPathByType(CellType.Dispenser, detail);
-            if(path != null && path.size()>0){
+            if (path != null && path.size() > 0) {
                 return path;
             }
         }
@@ -748,70 +735,66 @@ public class BasicAgent extends Agent {
     }
 
 
-    public boolean isGoal(){
-        if(mapHandler.getMap()[mapHandler.getAgentLocation().getX()][mapHandler.getAgentLocation().getY()].getType().equals(CellType.Goal)){
+    public boolean isGoal() {
+        if (mapHandler.getMap()[mapHandler.getAgentLocation().getX()][mapHandler.getAgentLocation().getY()].getType().equals(CellType.Goal)) {
             return true;
         }
         return false;
     }
 
-    public Action lookForGoal(){
-        List <IntegerPair> path = getShortestPathByType(CellType.Goal, "");
-        if(path.size()>1){
+    public Action lookForGoal() {
+        List<IntegerPair> path = getShortestPathByType(CellType.Goal, "");
+        if (path.size() > 1) {
             IntegerPair next_location = path.get(1);
             return moveTo(next_location);
-        }
-        else if(path.size() == 1){
+        } else if (path.size() == 1) {
             return new Action("submit", new Identifier(this.activeTask.getName()));
         }
 
         return explore();
     }
 
-    public String coordinatesToDirection(IntegerPair coordinates){
-        if(coordinates.getX()==-1 && coordinates.getY()==0){
+    public String coordinatesToDirection(IntegerPair coordinates) {
+        if (coordinates.getX() == -1 && coordinates.getY() == 0) {
             return "w";
-        }
-        else if(coordinates.getX()==1 && coordinates.getY()==0){
+        } else if (coordinates.getX() == 1 && coordinates.getY() == 0) {
             return "e";
-        }
-        else if(coordinates.getX()==0 && coordinates.getY()==-1){
+        } else if (coordinates.getX() == 0 && coordinates.getY() == -1) {
             return "n";
-        }
-        else if(coordinates.getX()==0 && coordinates.getY()==1){
+        } else if (coordinates.getX() == 0 && coordinates.getY() == 1) {
             return "s";
         }
         return "";
     }
 
-    public String blockOnMySide(String detail){
-        int [] directionInX = {-1,1,0,0};
-        int [] directionInY = {0,0,1,-1};
+    public String blockOnMySide(String detail) {
+        int[] directionInX = {-1, 1, 0, 0};
+        int[] directionInY = {0, 0, 1, -1};
 
         //for each direction -> check
-        for(int i=0; i<4; i++){
+        for (int i = 0; i < 4; i++) {
             int x = directionInX[i];
             int y = directionInY[i];
             IntegerPair pos = new IntegerPair(this.mapHandler.getAgentLocation().getX() + x, this.mapHandler.getAgentLocation().getY() + y);
-            if(this.mapHandler.getCell(pos).getType().equals(CellType.Block) && ((DetailedCell)mapHandler.getCell(pos)).getDetails().equals(detail)){
-                String direction = coordinatesToDirection(new IntegerPair(x,y));
+            if (this.mapHandler.getCell(pos).getType().equals(CellType.Block) && ((DetailedCell) mapHandler.getCell(pos)).getDetails().equals(detail)) {
+                String direction = coordinatesToDirection(new IntegerPair(x, y));
                 return direction;
             }
         }
         return "";
     }
 
-    public String dispenserOnMySide(String detail){
-        int [] directionInX = {-1,1,0,0};
-        int [] directionInY = {0,0,1,-1};
+    public String dispenserOnMySide(String detail) {
+        int[] directionInX = {-1, 1, 0, 0};
+        int[] directionInY = {0, 0, 1, -1};
 
         //for each direction -> check
-        for(int i=0; i<4; i++){
+        for (int i = 0; i < 4; i++) {
             int x = directionInX[i];
             int y = directionInY[i];
             IntegerPair pos = new IntegerPair(this.mapHandler.getAgentLocation().getX() + x, this.mapHandler.getAgentLocation().getY() + y);
-            if(this.mapHandler.getCell(pos).getType().equals(CellType.Dispenser) && ((DetailedCell)mapHandler.getCell(pos)).getDetails().equals(detail)){
-                String direction = coordinatesToDirection(new IntegerPair(x,y));
+            if (this.mapHandler.getCell(pos).getType().equals(CellType.Dispenser) && ((DetailedCell) mapHandler.getCell(pos)).getDetails().equals(detail)) {
+                String direction = coordinatesToDirection(new IntegerPair(x, y));
                 return direction;
             }
         }
@@ -831,29 +814,29 @@ public class BasicAgent extends Agent {
         return path;
     }
 
-    public Action explore(){
+    public Action explore() {
         /*BFS2 bfs = new BFS2(mapHandler);
         List<IntegerPair> path = bfs.explore();
         if(path.isEmpty()) return moveRandom();
         path.remove(0);
         return moveTo(path.remove(0));*/
         IntegerPair agentLocation = this.mapHandler.getAgentLocation();
-        int [] directionInX = {-1,1,0,0};
-        int [] directionInY = {0,0,1,-1};
+        int[] directionInX = {-1, 1, 0, 0};
+        int[] directionInY = {0, 0, 1, -1};
 
-        int [] unknownInX = {-6,6,0,0};
-        int [] unknownInY = {0,0,6,-6};
-        for(int i=0; i<4; i++){
+        int[] unknownInX = {-6, 6, 0, 0};
+        int[] unknownInY = {0, 0, 6, -6};
+        for (int i = 0; i < 4; i++) {
             int newPosX = agentLocation.getX() + directionInX[i];
             int newPosY = agentLocation.getY() + directionInY[i];
-            IntegerPair newCellPos =  new IntegerPair(newPosX, newPosY);
+            IntegerPair newCellPos = new IntegerPair(newPosX, newPosY);
             int unknownX = agentLocation.getX() + unknownInX[i];
             int unknownY = agentLocation.getY() + unknownInY[i];
-            IntegerPair unknownPos =  new IntegerPair(unknownX, unknownY);
-            if(!mapHandler.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Empty)){
+            IntegerPair unknownPos = new IntegerPair(unknownX, unknownY);
+            if (!mapHandler.getMap()[newCellPos.getX()][newCellPos.getY()].getType().equals(CellType.Empty)) {
                 continue;
             }
-            if(!mapHandler.getMap()[unknownPos.getX()][unknownPos.getY()].getType().equals(CellType.Unknown)){
+            if (!mapHandler.getMap()[unknownPos.getX()][unknownPos.getY()].getType().equals(CellType.Unknown)) {
                 continue;
             }
             return moveTo(newCellPos);
@@ -862,40 +845,40 @@ public class BasicAgent extends Agent {
 
     }
 
-    private Action moveRandom(){
+    private Action moveRandom() {
         Random rand = new Random();
         int r = rand.nextInt(100);
-        if(r < 25) return new Action("move", new Identifier("n"));
-        if(r < 50) return new Action("move", new Identifier("s"));
-        if(r < 75) return new Action("move", new Identifier("e"));
+        if (r < 25) return new Action("move", new Identifier("n"));
+        if (r < 50) return new Action("move", new Identifier("s"));
+        if (r < 75) return new Action("move", new Identifier("e"));
         return new Action("move", new Identifier("w"));
     }
 
 
-    public Action moveTo(IntegerPair nextLocation){
+    public Action moveTo(IntegerPair nextLocation) {
         int x_movement = nextLocation.getX() - this.mapHandler.getAgentLocation().getX();
         int y_movement = nextLocation.getY() - this.mapHandler.getAgentLocation().getY();
 
         this.agentMovement = new IntegerPair(x_movement, y_movement);
 
-        if(this.agentMovement.getX() == 0 && this.agentMovement.getY() == 0)
+        if (this.agentMovement.getX() == 0 && this.agentMovement.getY() == 0)
             return new Action("skip");
 
         String direction = coordinatesToDirection(this.agentMovement);
         return new Action("move", new Identifier(direction));
     }
 
-    private Boolean check(){
+    private Boolean check() {
         String nextStep = coordinatesToDirection(this.activePath.get(0));
         boolean stuck = false;
         List<Thing> attachedItemsList = this.perceptionHandler.getAttached();
-        if (!attachedItemsList.isEmpty()){
-            for (var attachedItem: attachedItemsList){
+        if (!attachedItemsList.isEmpty()) {
+            for (var attachedItem : attachedItemsList) {
                 IntegerPair relativePosition = new IntegerPair(attachedItem.getX(), attachedItem.getY());
                 String attachmentDirection = coordinatesToDirection(relativePosition);
-                IntegerPair direction = new IntegerPair(9,9);
+                IntegerPair direction = new IntegerPair(9, 9);
                 Cell checkCell;
-                switch (attachmentDirection){
+                switch (attachmentDirection) {
                     case "n":
                         if (nextStep.equals("e") || nextStep.equals("w")) {
                             if (nextStep.equals("e")) {
@@ -907,33 +890,33 @@ public class BasicAgent extends Agent {
                         break;
                     case "w":
                         if (nextStep.equals("n") || nextStep.equals("s")) {
-                            if (nextStep.equals("n")){
-                                direction = new IntegerPair(-1,-1);
+                            if (nextStep.equals("n")) {
+                                direction = new IntegerPair(-1, -1);
                             } else {
-                                direction = new IntegerPair(-1,1);
+                                direction = new IntegerPair(-1, 1);
                             }
                         }
                         break;
                     case "s":
-                        if (nextStep.equals("w") || nextStep.equals("e")){
-                            if (nextStep.equals("w")){
-                                direction = new IntegerPair(-1,1);
+                        if (nextStep.equals("w") || nextStep.equals("e")) {
+                            if (nextStep.equals("w")) {
+                                direction = new IntegerPair(-1, 1);
                             } else {
-                                direction = new IntegerPair(1,1);
+                                direction = new IntegerPair(1, 1);
                             }
                         }
                         break;
                     case "e":
-                        if (nextStep.equals("n") || nextStep.equals("s")){
-                            if (nextStep.equals("n")){
-                                direction = new IntegerPair(1,-1);
+                        if (nextStep.equals("n") || nextStep.equals("s")) {
+                            if (nextStep.equals("n")) {
+                                direction = new IntegerPair(1, -1);
                             } else {
-                                direction = new IntegerPair(1,1);
+                                direction = new IntegerPair(1, 1);
                             }
                         }
                         break;
                 }
-                if (!direction.equals(new IntegerPair(9,9))) {
+                if (!direction.equals(new IntegerPair(9, 9))) {
                     checkCell = this.mapHandler.getCell(this.mapHandler.getAgentLocation().add(direction));
                     if (checkCell.getType() != CellType.Empty) {
                         stuck = true;
@@ -946,26 +929,25 @@ public class BasicAgent extends Agent {
         return stuck;
     }
 
-    private void shareMap(String receiver){
-        for(int i=0; i<this.mapHandler.getMap().length; i++){
-            for(int j=0;j<this.mapHandler.getMap()[i].length; j++){
-                Cell item = this.mapHandler.getCell(new IntegerPair(i,j));
+    private void shareMap(String receiver) {
+        for (int i = 0; i < this.length; i++) {
+            for (int j = 0; j < this.width; j++) {
+                Cell item = this.mapHandler.getCell(new IntegerPair(i, j));
                 CellType cellType;
                 cellType = item.getType();
-                if(cellType.equals(CellType.Unknown) || cellType.equals(CellType.Agent)) continue;
+                if (cellType.equals(CellType.Unknown) || cellType.equals(CellType.Agent) || cellType.equals(CellType.Teammate)) continue;
                 String cellClass;
                 String details;
-                if (cellType == CellType.Dispenser || cellType == CellType.Block){
+                if (cellType == CellType.Dispenser || cellType == CellType.Block) {
                     cellClass = "Detailed";
-                    details = ((DetailedCell)item).getDetails();
-                }
-                else {
+                    details = ((DetailedCell) item).getDetails();
+                } else {
                     cellClass = "Ordinal";
-                    details="";
+                    details = "";
                 }
                 sendMessage(this.perceptionHandler.makePercept("MapSharing",
-                        cellType.toString(), cellClass,i,j, details)
-                        ,receiver, this.getName());
+                        cellType.toString(), cellClass, i, j, details)
+                        , receiver, this.getName());
 
             }
         }

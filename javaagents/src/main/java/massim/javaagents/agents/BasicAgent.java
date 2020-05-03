@@ -856,27 +856,25 @@ public class BasicAgent extends Agent {
     }
 
     private void shareMap(String receiver){
-        String cellClass;
-        String details;
-        CellType cellType;
         for(int i=0; i<this.mapHandler.getMap().length; i++){
             for(int j=0;j<this.mapHandler.getMap()[i].length; j++){
                 Cell item = this.mapHandler.getCell(new IntegerPair(i,j));
+                CellType cellType;
                 cellType = item.getType();
-                if(cellType.equals(CellType.Unknown)) continue;
+                if(cellType.equals(CellType.Unknown) || cellType.equals(CellType.Agent)) continue;
+                String cellClass;
+                String details;
                 if (cellType == CellType.Dispenser || cellType == CellType.Block){
                     cellClass = "Detailed";
                     details = ((DetailedCell)item).getDetails();
-                    sendMessage(this.perceptionHandler.makePercept("MapSharing",
-                            cellType.toString(), cellClass,i,j, details)
-                            ,receiver, this.getName());
                 }
                 else {
                     cellClass = "Ordinal";
-                    sendMessage(this.perceptionHandler.makePercept("MapSharing",
-                            cellType.toString(), cellClass,i,j),
-                            receiver, this.getName());
+                    details="";
                 }
+                sendMessage(this.perceptionHandler.makePercept("MapSharing",
+                        cellType.toString(), cellClass,i,j, details)
+                        ,receiver, this.getName());
 
             }
         }

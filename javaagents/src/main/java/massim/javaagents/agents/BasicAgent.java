@@ -314,7 +314,10 @@ public class BasicAgent extends Agent {
             IntegerPair transform = teamMatesTrans.get(sender);
             Boolean success = mapHandler.shareMap(transform, cells, cellLocations);
             if(success) say(sender + " shared his map with me");
-            else say(sender + " didn't share his map with me");
+            else {
+                teamMatesTrans.remove(sender);
+                say(sender + " didn't share his map with me");
+            }
             /*
             List<Parameter> pars = message.getClonedParameters();
             CellType cellType = CellType.valueOf(((Identifier) pars.get(0)).getValue());
@@ -349,6 +352,11 @@ public class BasicAgent extends Agent {
         //if(perceptionHandler.getStep() % 100 == 0)mapHandler.printMapToFile("maps\\" + getName() + perceptionHandler.getStep() + ".txt");
         //if(true)return explore();
 
+        if(perceptionHandler.getFailed()){
+            activePath.clear();
+            return moveRandom();
+        }
+        
         //If Agent sees a teammate -> share relative positions!
         if (this.perceptionHandler.getTeammates().size() > 0) {
             //say("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!MET!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -368,14 +376,11 @@ public class BasicAgent extends Agent {
 
         //if(true)return explore();
 
-       /* if (check()){
-            moveRandom();
+        /*if (check()){
+            return moveRandom();
         } */
 
-        /*if(perceptionHandler.getFailed()){
-            activePath.clear();
-            return moveRandom();
-        }*/
+        
 
         //PHASE 3 (Deliberate) - Agent tries to figure out what is the best action to perform given his current state and his previous action
         Action act = chooseAction();
@@ -947,6 +952,7 @@ public class BasicAgent extends Agent {
                         checkCell = this.mapHandler.getCell(this.mapHandler.getAgentLocation().add(direction));
                         if (checkCell.getType() != CellType.Empty) {
                             stuck = true;
+                            activePath.clear();
                         }
                     }
 

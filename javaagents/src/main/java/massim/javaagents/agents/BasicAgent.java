@@ -55,7 +55,8 @@ public class BasicAgent extends Agent {
     String helpingWho = "";
 
     private List<String> reqsAnn = new LinkedList<>(); //ignore it but don't delete it
-
+    private List<IntegerPair> occupiedPositions = new LinkedList<>(); //IMPORTANT
+    private IntegerPair myBlockPos;
     /**
      * Constructor.
      *
@@ -275,7 +276,7 @@ public class BasicAgent extends Agent {
         else if (message.getName().equals("GO")) {
 
             sendMessage(perceptionHandler.makePercept("HERE", this.mapHandler.getAgentLocation().getX(),
-                    this.mapHandler.getAgentLocation().getY()), sender, this.getName());
+                    this.mapHandler.getAgentLocation().getY(), activeTask.getName()), sender, this.getName());
 
         }
         //HERE
@@ -283,11 +284,24 @@ public class BasicAgent extends Agent {
             List<Parameter> pars = message.getClonedParameters();
             IntegerPair teammateLocation = new IntegerPair(((Numeral) pars.get(0)).getValue().intValue(),
                     ((Numeral) pars.get(1)).getValue().intValue());
-            IntegerPair transformation = teamMatesTrans.get(sender);
-            IntegerPair desiredLocation = teammateLocation.add(transformation);
+            String taskReceived = ((Identifier) pars.get(2)).getValue();
 
+            IntegerPair transformation = teamMatesTrans.get(sender);
+            IntegerPair teamMatePos = teammateLocation.add(transformation);
+
+            IntegerPair blockXY = new IntegerPair(requirement.getX(), requirement.getY());
+            myBlockPos = teamMatePos.add(blockXY);
+
+            occupiedPositions.add(teamMatePos);
+
+            Task t = perceptionHandler.getTasks().stream().filter(ta -> ta.getName().equals(taskReceived)).findFirst().get();
+            for(var req : t.getRequirements().keySet()){
+                IntegerPair xy = new IntegerPair(req.getX(), req.getY());
+                occupiedPositions.add(xy.add(teamMatePos));
+            }
+
+            activePath = null;
             state = State.GoingToYou;
-            //GOTO this location
 
         }
         else if(message.getName().equals("MapSharing")){
@@ -430,11 +444,38 @@ public class BasicAgent extends Agent {
         return new Action("skip");
     }
 
-    private Action goToYou() {
+    private Action prepareToGo(IntegerPair agentPos, IntegerPair attch, List<IntegerPair> occupiedPositions){
+        for(var occupiedPos : occupiedPositions){
+            if(agentPos.equals(occupiedPos)){
+                return new Action("rotate", new Identifier("cw"));
+            }
+        }
+        return null;
+    }
+
+    private Action goToYou(){
+
+        IntegerPair possibleAgentPos = null;
+        IntegerPair attached = null;
+
+        //CALCULATE WHERE TO GO
+        if(activePath == null){
+            Thing attachedObj = perceptionHandler.getAttached().get(0);
+            attached = new IntegerPair(attachedObj.getX(), attachedObj.getY());
+            possibleAgentPos = attached.inverse().add(myBlockPos);
+            action = prepareToGo(possibleAgentPos, attached, occupiedPositions);
+        }
+        if(action!=null){
+            return action;
+        }
+
+        //IF IT IS NULL, MEANS NO NEED TO ROTATE... SO LET'S CALL BFS AND BUILD TAHT PATH
+
         //call bfs on specific location and follow the path to it.
         //when we arrive there -> change state to InPosition.
-        say("im going yaaay");
-        return new Action("skip");
+        //say("im going yaaay");
+        //return new Action("skip");
+        return null;
     }
 
     private Action doHelp() {

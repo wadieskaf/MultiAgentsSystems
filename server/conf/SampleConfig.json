@@ -6,7 +6,7 @@
     "launch" : "key",
     "port" : 12300,
     "backlog" : 10000,
-    "agentTimeout" : 300,
+    "agentTimeout" : 500,
     "resultPath" : "results",
     "logLevel" : "normal",
     "logPath" : "logs",
@@ -45,8 +45,8 @@
           ["ragged-border", 3]
         ],
         "goals": {
-          "number" : 3,
-          "size" : [1,2]
+          "number" : 6,
+          "size" : [1,3]
         }
       },
 
@@ -55,8 +55,8 @@
 
       "tasks" : {
         "size" : [2, 2],
-        "duration" : [100, 200],
-        "probability" : 0.1
+        "duration" : [500, 500],
+        "probability" : 0.05
       },
 
       "events" : {

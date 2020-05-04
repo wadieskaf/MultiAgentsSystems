@@ -69,6 +69,22 @@ public class PerceptionHandler {
 		return perceptToTask(taskPercepts);
 	}
 	
+	public Boolean getFailedMove(){
+		return getFailedAction("move");
+	}
+	
+	public Boolean getSuccessfulAction(String action){
+		Boolean succ = !getFailed();
+		String lastAction = getStringParameter(filterByName("lastAction").get(0), 0);
+		return succ && lastAction.equals(action);
+	}
+	
+	public Boolean getFailedAction(String action){
+		Boolean failed = getFailed();
+		String lastAction = getStringParameter(filterByName("lastAction").get(0), 0);
+		return failed && lastAction.equals(action);
+	}
+	
 	public Boolean getFailed(){
 		String actionResult = getStringParameter(filterByName("lastActionResult").get(0), 0);
 		if(actionResult.equals("success")) return false;

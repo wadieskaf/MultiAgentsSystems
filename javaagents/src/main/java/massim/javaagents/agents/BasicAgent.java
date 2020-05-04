@@ -31,9 +31,7 @@ public class BasicAgent extends Agent {
     private IntegerPair agentMovement;
     private int length, width;
     private Task activeTask;
-    private Map.Entry<Block, Boolean> activeRequirement;
     private Action action;
-    private boolean requested;
     private List<IntegerPair> activePath;
     private Block requirement;
     private Map<Block, Boolean> requirements;
@@ -57,6 +55,10 @@ public class BasicAgent extends Agent {
     private List<String> reqsAnn = new LinkedList<>(); //ignore it but don't delete it
     private List<IntegerPair> occupiedPositions = new LinkedList<>(); //IMPORTANT
     private IntegerPair myBlockPos;
+    
+    String failedMate="";
+    
+    private Map<String, IntegerPair> myMates = new HashMap<>();
     /**
      * Constructor.
      *
@@ -73,9 +75,7 @@ public class BasicAgent extends Agent {
         this.mapHandler = new MapHandler();
         this.mapHandler.initiateMap(this.length, this.width, new IntegerPair(this.agent_x, this.agent_y));
         this.activeTask = null;
-        this.activeRequirement = null;
         this.action = null;
-        this.requested = false;
         this.activePath = new LinkedList<>();
         this.requirement = null;
         this.state = State.Exploring;
@@ -144,11 +144,11 @@ public class BasicAgent extends Agent {
 
             if (state.equals(State.Helping)) {
                 //Already Helping, sorry
-            } else if (activeTask.getDeadLine() < t.getDeadLine()) {
+            } else if (activeTask != null && activeTask.getDeadLine() < t.getDeadLine()) {
                 //Sorry, my task is almost done, I need to finish it.
                 say("Better time!");
             } else {
-                say("Your : " + t.getDeadLine() + " is better than mine: " + activeTask.getDeadLine() + ", so I got U :)");
+                say("Yours is better :)");
                 //say("Ok, got u!");
                 //Ok, I am not helping anyone....or....I your task is going to be finished sooner, let me help....or... I'm not doing anything
                 for (int i = 0; i < reqs.length; i++) {
@@ -300,7 +300,7 @@ public class BasicAgent extends Agent {
                 occupiedPositions.add(xy.add(teamMatePos));
             }
 
-            activePath = null;
+            activePath.clear();
             state = State.GoingToYou;
 
         }
@@ -349,13 +349,25 @@ public class BasicAgent extends Agent {
             this.mapHandler.makeTransformation(transform, cell, cellLocation);*/
             mapHandler.printMapToFile("maps\\" + getName() + "mapSharedWith" + sender + ".txt");
         }
+        
+        else if(message.getName().equals("ME")){
+            List<Parameter> pars = message.getParameters();
+            Integer reqDetailX = ((Numeral) pars.get(0)).getValue().intValue(); //the X detail of the requirement
+            Integer reqDetailY = ((Numeral) pars.get(1)).getValue().intValue();
+            
+            myMates.put(sender, new IntegerPair(reqDetailX, reqDetailY));
+        }
+        
+        else if(message.getName().equals("Thank you")){
+            reset();
+        }
 
     }
 
     @Override
     public Action step() {
-        //if(getName().equals("agentA1"))say(Whiteboard.getAllAssigned().toString());
-        //say("teammates: " + teamMatesTrans.toString());
+        if(getName().equals("agentA1"))say(Whiteboard.getAllAssigned().toString());
+        say(state.toString());
         //PHASE 1 (Sense) - Agent gets perceptions from Environment
         List<Percept> percepts = getPercepts();
         this.perceptionHandler = new PerceptionHandler(percepts);
@@ -366,9 +378,23 @@ public class BasicAgent extends Agent {
         //if(perceptionHandler.getStep() % 100 == 0)mapHandler.printMapToFile("maps\\" + getName() + perceptionHandler.getStep() + ".txt");
         //if(true)return explore();
 
-        if(perceptionHandler.getFailed()){
+        if(perceptionHandler.getFailedMove()){
             activePath.clear();
             return moveRandom();
+        }
+        
+        if(perceptionHandler.getFailedAction("connect") && state == State.AtGoal){
+            return new Action("connect", new Identifier(failedMate), new Numeral(perceptionHandler.getAttached().get(0).getX()), new Numeral(perceptionHandler.getAttached().get(0).getY()));
+        }
+        
+        if(perceptionHandler.getFailedAction("connect") && state == State.InPosition){
+            return new Action("connect", new Identifier(helpingWho), new Numeral(perceptionHandler.getAttached().get(0).getX()), new Numeral(perceptionHandler.getAttached().get(0).getY()));
+        }
+        
+        if(perceptionHandler.getSuccessfulAction("submit")){
+            say("Look at me Mom, I fucking did it!!!!!!!");
+            sendMessage(perceptionHandler.makePercept("Thank you"), failedMate, getName());
+            reset();
         }
         
         //If Agent sees a teammate -> share relative positions!
@@ -428,16 +454,32 @@ public class BasicAgent extends Agent {
             case GoingToYou:
                 return goToYou();
             case InPosition:
-                activeActions = createPattern(helping, new IntegerPair(0, 0) /* requirement place*/);
+                //activeActions = createPattern(helping, new IntegerPair(0, 0) /* requirement place*/)
+                sendMessage(perceptionHandler.makePercept("ME",requirement.getX(), requirement.getY()), helpingWho, getName());
+                return new Action("connect", new Identifier(helpingWho), new Numeral(perceptionHandler.getAttached().get(0).getX()), new Numeral(perceptionHandler.getAttached().get(0).getY()));
                 //remember to helping -> false
-            case BuildPattern:
-                return buildPattern();
         }
 
         return new Action("skip");
     }
 
     //##################################### HELPER FUNCTIONS #####################################################
+    
+    private void reset(){
+        state = State.Exploring;
+        activePath.clear();
+        activeTask = null;
+        requirement = null;
+        helping = false;
+        helpingWho = "";
+        action = null;
+        requirements = null;
+        myTaskWeights.clear();
+        alreadySkipped = false;
+        reqsAnn.clear();
+        occupiedPositions.clear();
+        failedMate ="";
+    }
 
     private Action lookForYou() {
         sendMessage(perceptionHandler.makePercept("GO"), helpingWho, getName());
@@ -457,9 +499,11 @@ public class BasicAgent extends Agent {
 
         IntegerPair possibleAgentPos = null;
         IntegerPair attached = null;
-
+        
+        action = null;
+        
         //CALCULATE WHERE TO GO
-        if(activePath == null){
+        if(activePath.isEmpty()){
             Thing attachedObj = perceptionHandler.getAttached().get(0);
             attached = new IntegerPair(attachedObj.getX(), attachedObj.getY());
             possibleAgentPos = attached.inverse().add(myBlockPos);
@@ -468,14 +512,20 @@ public class BasicAgent extends Agent {
         if(action!=null){
             return action;
         }
+        if(!activePath.isEmpty()){
+            if(activePath.size() == 1){
+                state = State.InPosition;
+            }
+            return moveTo(activePath.remove(0));
+        }
 
         //IF IT IS NULL, MEANS NO NEED TO ROTATE... SO LET'S CALL BFS AND BUILD TAHT PATH
-
-        //call bfs on specific location and follow the path to it.
-        //when we arrive there -> change state to InPosition.
-        //say("im going yaaay");
-        //return new Action("skip");
-        return null;
+        
+        BFS2 bfs = new BFS2(mapHandler);
+        activePath = bfs.BFS(possibleAgentPos);
+        activePath.remove(0);
+        
+        return moveTo(activePath.remove(0));
     }
 
     private Action doHelp() {
@@ -492,7 +542,7 @@ public class BasicAgent extends Agent {
         //Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
         //check Null case in dispensers.. but unlikely... because agent is helping because he can...
 
-        if (activePath.isEmpty() || perceptionHandler.getFailed()) {
+        if (activePath.isEmpty() || perceptionHandler.getFailedMove()) {
             activePath = lookForDispenserV2(detail); //action can be "move" if going for a dispenser | "request" if already near a dispenser | "attach" if we have requested a block from the dispenser || "null" if we haven't seen any dispenser yet
             activePath.remove(0);
         }
@@ -507,12 +557,15 @@ public class BasicAgent extends Agent {
 
     private Action trySubmition() {
         requirements.replace(requirement, true);
-
         //if you are an agent who needs help and there is still a requirement not done
         if (activeTask.getRequirements().containsValue(false)) {
 
             //!!!!!!!!!!!!!!!!!CHECK IF ALREADY ANNOUNCED TO AVOID KEEP ANNOUNCING WHILE WAITING.... JUST CHECK SIZE OF ANNOUNCEDTO!!!!!!!!!!!!!!
-
+            IntegerPair attached = new IntegerPair(perceptionHandler.getAttached().get(0).getX(), perceptionHandler.getAttached().get(0).getY());
+            if (attached.getX() != requirement.getX() || attached.getY() != requirement.getY()) {
+                return new Action("rotate", new Identifier("cw"));
+            }
+            
             if (teamMatesTrans.size() > 0) {
                 List<String> taskSpecs = new LinkedList<>();
                 taskSpecs.add(activeTask.getName());
@@ -529,6 +582,7 @@ public class BasicAgent extends Agent {
                 for (var teamMate : teamMatesTrans.keySet()) {
                     //send a message of format ["task1", "b2", "b3"]
                     announcedTo.add(teamMate);
+                    shareMap(teamMate);
                     sendMessage(perceptionHandler.makePercept("Announcement", taskSpecsToSend), teamMate, getName());
                 }
 
@@ -537,17 +591,16 @@ public class BasicAgent extends Agent {
                 }
                 broadcast(perceptionHandler.makePercept("Announcement", taskSpecsToSend), getName());*/
             }
-        } else if (activeTask.getRequirements().containsValue(false) == false) {
-            //check if help has arrived
-                    /*if(helpArrived){
-                        //create pattern and connect
-                    }
-                    else{
-                        //wait
-                    }*/
+        } else if (myMates.size() > 0) {///activeTask.getRequirements().containsValue(false) == false
+            for(var mate : myMates.keySet()){
+                //IntegerPair mateXY = myMates.get(mate);
+                failedMate = mate;
+                myMates.remove(mate);
+                return new Action("connect", new Identifier(mate), new Numeral(perceptionHandler.getAttached().get(0).getX()), new Numeral(perceptionHandler.getAttached().get(0).getY()));
+            }
         }
 
-        return new Action("skip");
+        return new Action("submit", new Identifier(activeTask.getName()));
 
 
     }
@@ -560,14 +613,21 @@ public class BasicAgent extends Agent {
         for (var task : tasks) {
             taskWeights.put(task.getName(), -1);
         }
-
+        List<IntegerPair> possiblePlaces = List.of(
+            new IntegerPair(0,1), 
+            new IntegerPair(0,-1),
+            new IntegerPair(1,0),
+            new IntegerPair(-1,0)
+        );
+        
         for (Task task : tasks) {
             for (Map.Entry<Block, Boolean> requirement : task.getRequirements().entrySet()) {
                 String detail = requirement.getKey().getType();
+                IntegerPair r = new IntegerPair(requirement.getKey().getX(), requirement.getKey().getY());
                 Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
-                if (!dispensers.isEmpty()) {
+                if (!dispensers.isEmpty() && possiblePlaces.contains(r)) {
                     List<IntegerPair> p = lookForDispenserV2(detail);//!!STRANGE!!!
-                    taskWeights.replace(task.getName(), taskWeights.get(task.getName()) + p.size());
+                    if(p != null)taskWeights.replace(task.getName(), taskWeights.get(task.getName()) + p.size());
                 }
             }
         }
@@ -607,12 +667,21 @@ public class BasicAgent extends Agent {
             }
 
             //requirement = activeTask.getRequirement();
+            
+            List<IntegerPair> possiblePlaces = List.of(
+            new IntegerPair(0,1), 
+            new IntegerPair(0,-1),
+            new IntegerPair(1,0),
+            new IntegerPair(-1,0)
+        );
+            
             //TODO check this part
             requirements = activeTask.getRequirements();
             for (Map.Entry<Block, Boolean> req : requirements.entrySet()) {
                 String detail = req.getKey().getType();
+                IntegerPair place = new IntegerPair(req.getKey().getX(), req.getKey().getY());
                 Map<IntegerPair, String> dispensers = this.mapHandler.getDispensersByType(detail);
-                if (!dispensers.isEmpty()) {
+                if (!dispensers.isEmpty() && possiblePlaces.contains(place)) {
                     state = State.MovingToDispenser;
                     requirement = req.getKey();
                     return moveToDispenser(detail);
@@ -623,7 +692,7 @@ public class BasicAgent extends Agent {
     }
 
     private Action moveToDispenser(String detail) {
-        if (activePath.isEmpty() || activePath == null || perceptionHandler.getFailed()) {
+        if (activePath.isEmpty() || activePath == null || perceptionHandler.getFailedMove()) {
             activePath = lookForDispenserV2(detail); //action can be "move" if going for a dispenser | "request" if already near a dispenser | "attach" if we have requested a block from the dispenser || "null" if we haven't seen any dispenser yet
             activePath.remove(0);
         }
@@ -659,11 +728,13 @@ public class BasicAgent extends Agent {
             state = State.NearDispenser;
             return requestBlock(detail);
         }
-        if (!helping)
+        if (!helping){
             state = State.MovingToGoal;
-        else
+        }
+        else{
             //state = State.LookingForYou;
             sendMessage(perceptionHandler.makePercept("GO"), helpingWho, getName());
+        }
         return new Action("attach", new Identifier(blockDir));
     }
 
@@ -682,7 +753,7 @@ public class BasicAgent extends Agent {
             activePath.remove(0);
         }
         //in case we our attached block gets stuck
-        if (perceptionHandler.getFailed()) {
+        if (perceptionHandler.getFailedMove()) {
             activePath = new LinkedList<>();
             return moveRandom();
         }
@@ -874,7 +945,7 @@ public class BasicAgent extends Agent {
     }
 
     public List<IntegerPair> getShortestPathByType(CellType ct, String detail) {
-        //boolean failed = this.perceptionHandler.getFailed();
+        //boolean failed = this.perceptionHandler.getFailedMove();
         BFS2 bfs = new BFS2(this.mapHandler);
         List<IntegerPair> path = bfs.BFS(ct, detail);
         return path;

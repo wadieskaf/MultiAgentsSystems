@@ -31,6 +31,12 @@ public class BFS2 {
 		return BFS(type, detail, false);
 	}
 	
+	public List<IntegerPair> BFS(IntegerPair desiredLocation){
+		IntegerPair goal = searchLocation(desiredLocation);
+		if(goal == null) return null;
+		return createPath(goal);
+	}
+	
 	public List<IntegerPair> BFS(CellType type, String detail, boolean explore){
 		IntegerPair goal = search(type, detail, explore);
 		if(goal == null) return null;
@@ -83,6 +89,42 @@ public class BFS2 {
 			} 
 		}
 		return null;
+	}
+	
+	private IntegerPair searchLocation(IntegerPair location)
+	{ 
+		IntegerPair s = mh.getAgentLocation();
+		// Create a queue for BFS 
+		LinkedList<IntegerPair> queue = new LinkedList<>(); 
+  
+		// Mark the current node as visited and enqueue it 
+		//visited[s]=true; 
+		visited.add(s);
+		queue.add(s); 
+		parent.put(s, null);
+  
+		while (queue.size() != 0) 
+		{ 
+			// Dequeue a vertex from queue and print it 
+			s = queue.poll(); 
+			
+			if(s.equals(location)){
+				return s;
+			}
+  
+			Iterator<IntegerPair> i = possibleNeighbours(s, false).listIterator(); 
+			while (i.hasNext()) 
+			{ 
+				IntegerPair n = i.next(); 
+				if (!visited.contains(n)) 
+				{ 
+					visited.add(n); 
+					queue.add(n);
+					parent.put(n,s);
+				} 
+			} 
+		}
+		return null;
 	} 
 	
 	private List<IntegerPair> possibleNeighbours(IntegerPair pos, boolean explore){
@@ -96,7 +138,7 @@ public class BFS2 {
 				continue;
 			}
 			//cell type
-			if(!(mh.getCell(newPos).getType().equals(CellType.Empty) || mh.getCell(newPos).getType().equals(CellType.Dispenser) || mh.getCell(newPos).getType().equals(CellType.Block) || mh.getCell(newPos).getType().equals(CellType.Goal))){
+			if(!(mh.getCell(newPos).getType().equals(CellType.Empty) || mh.getCell(newPos).getType().equals(CellType.Dispenser) || mh.getCell(newPos).getType().equals(CellType.Goal))){
 				if(!(mh.getCell(newPos).getType().equals(CellType.Unknown) && explore)) continue;
 			}
 			res.add(newPos);

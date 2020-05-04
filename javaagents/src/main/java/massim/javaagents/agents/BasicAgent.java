@@ -895,62 +895,64 @@ public class BasicAgent extends Agent {
     }
 
     private Boolean check() {
-        String nextStep = coordinatesToDirection(this.activePath.get(0));
         boolean stuck = false;
-        List<Thing> attachedItemsList = this.perceptionHandler.getAttached();
-        if (!attachedItemsList.isEmpty()) {
-            for (var attachedItem : attachedItemsList) {
-                IntegerPair relativePosition = new IntegerPair(attachedItem.getX(), attachedItem.getY());
-                String attachmentDirection = coordinatesToDirection(relativePosition);
-                IntegerPair direction = new IntegerPair(9, 9);
-                Cell checkCell;
-                switch (attachmentDirection) {
-                    case "n":
-                        if (nextStep.equals("e") || nextStep.equals("w")) {
-                            if (nextStep.equals("e")) {
-                                direction = new IntegerPair(1, -1);
-                            } else {
-                                direction = new IntegerPair(-1, -1);
+        if (!this.activePath.isEmpty()) {
+            String nextStep = coordinatesToDirection(this.activePath.get(0));
+            List<Thing> attachedItemsList = this.perceptionHandler.getAttached();
+            if (!attachedItemsList.isEmpty()) {
+                for (var attachedItem : attachedItemsList) {
+                    IntegerPair relativePosition = new IntegerPair(attachedItem.getX(), attachedItem.getY());
+                    String attachmentDirection = coordinatesToDirection(relativePosition);
+                    IntegerPair direction = new IntegerPair(9, 9);
+                    Cell checkCell;
+                    switch (attachmentDirection) {
+                        case "n":
+                            if (nextStep.equals("e") || nextStep.equals("w")) {
+                                if (nextStep.equals("e")) {
+                                    direction = new IntegerPair(1, -1);
+                                } else {
+                                    direction = new IntegerPair(-1, -1);
+                                }
                             }
-                        }
-                        break;
-                    case "w":
-                        if (nextStep.equals("n") || nextStep.equals("s")) {
-                            if (nextStep.equals("n")) {
-                                direction = new IntegerPair(-1, -1);
-                            } else {
-                                direction = new IntegerPair(-1, 1);
+                            break;
+                        case "w":
+                            if (nextStep.equals("n") || nextStep.equals("s")) {
+                                if (nextStep.equals("n")) {
+                                    direction = new IntegerPair(-1, -1);
+                                } else {
+                                    direction = new IntegerPair(-1, 1);
+                                }
                             }
-                        }
-                        break;
-                    case "s":
-                        if (nextStep.equals("w") || nextStep.equals("e")) {
-                            if (nextStep.equals("w")) {
-                                direction = new IntegerPair(-1, 1);
-                            } else {
-                                direction = new IntegerPair(1, 1);
+                            break;
+                        case "s":
+                            if (nextStep.equals("w") || nextStep.equals("e")) {
+                                if (nextStep.equals("w")) {
+                                    direction = new IntegerPair(-1, 1);
+                                } else {
+                                    direction = new IntegerPair(1, 1);
+                                }
                             }
-                        }
-                        break;
-                    case "e":
-                        if (nextStep.equals("n") || nextStep.equals("s")) {
-                            if (nextStep.equals("n")) {
-                                direction = new IntegerPair(1, -1);
-                            } else {
-                                direction = new IntegerPair(1, 1);
+                            break;
+                        case "e":
+                            if (nextStep.equals("n") || nextStep.equals("s")) {
+                                if (nextStep.equals("n")) {
+                                    direction = new IntegerPair(1, -1);
+                                } else {
+                                    direction = new IntegerPair(1, 1);
+                                }
                             }
-                        }
-                        break;
-                }
-                if (!direction.equals(new IntegerPair(9, 9))) {
-                    checkCell = this.mapHandler.getCell(this.mapHandler.getAgentLocation().add(direction));
-                    if (checkCell.getType() != CellType.Empty) {
-                        stuck = true;
+                            break;
                     }
+                    if (!direction.equals(new IntegerPair(9, 9))) {
+                        checkCell = this.mapHandler.getCell(this.mapHandler.getAgentLocation().add(direction));
+                        if (checkCell.getType() != CellType.Empty) {
+                            stuck = true;
+                        }
+                    }
+
                 }
 
             }
-
         }
         return stuck;
     }
